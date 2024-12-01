@@ -1,7 +1,7 @@
 {
-  "name": "valorant-battles",
+  "name": "kavibot",
   "version": "0.0.1",
-  "description": "Valorant Agent Battle",
+  "description": "KaviBot",
   "main": "app.js",
   "type": "module",
   "scripts": {
@@ -17,6 +17,7 @@
     "discord.js": "^14.15.3",
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
+    "node-cron": "^3.0.3",
     "node-fetch": "^3.2.3"
   },
   "devDependencies": {

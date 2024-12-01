@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cron from 'node-cron';
 import {
   InteractionType,
   InteractionResponseType,
@@ -11,7 +12,7 @@ import { Client, GatewayIntentBits } from 'discord.js';
 
 import { VerifyDiscordRequest, DiscordRequest, getRandomEmoji, getDateFromInput, FULL_DAYS, getCompliment } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { CHALLENGE_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, HasGuildCommands } from './commands.js';
+import { CHALLENGE_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND } from './commands.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +21,13 @@ app.use(express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }));
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 const activeGames = {};
-const foundSteamLinks = {};
+const foundGameLinks = {};
+
+const KAVIBOT_USER_ID = '1060455432843448360';
+const REMINDER_CHANNEL_ID = '1312621033026490438';
+const BWI_USER_ID = '467323668507131904';
+
+const activeReminders = {};
 
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
@@ -52,11 +59,10 @@ app.post('/interactions', async function(req, res) {
     }
 
     if (name === GAME_COMMAND.name) {
-      console.log(channel_id);
-      // const channel = client.channels.cache.get(channel_id);
+      const forceFetch = data.options && data.options.length > 0 && data.options[0] ? data.options[0].value : false;
+      if (forceFetch) console.log('Doing a full channel read');
       let channel;
-      if (client.channels.cache.has(channel_id)) {
-        console.log('Cached channel');
+      if (!forceFetch && client.channels.cache.has(channel_id)) {
         channel = client.channels.cache.get(channel_id);
       } else {
         try {
@@ -70,14 +76,14 @@ app.post('/interactions', async function(req, res) {
       let fetchedMessages = {size: 0};
       let messages = [];
       let lastMessageId;
-      if (!channel.messages.cache || channel.messages.cache.size === 0) {
+      if (forceFetch || !channel.messages.cache || channel.messages.cache.size === 0) {
         try {
           console.log('Fetching messages');
           do {
             fetchedMessages = await channel.messages.fetch({ limit: 100, before: lastMessageId });
             messages.push(...fetchedMessages.values());
             lastMessageId = fetchedMessages.last()?.id;
-          } while (fetchedMessages.size > 0 && (!foundSteamLinks[channel_id] || foundSteamLinks[channel_id].size === 0 || messages.length <= 200));
+          } while (fetchedMessages.size > 0 && (!foundGameLinks[channel_id] || foundGameLinks[channel_id].size === 0 || messages.length <= 200 || forceFetch));
         } catch (error) {
           console.error('Error fetching messages:', error);
         }
@@ -89,29 +95,34 @@ app.post('/interactions', async function(req, res) {
 
       // Filter for Steam game links
       const steamLinkRegex = /https?:\/\/store\.steampowered\.com\/app\/\d+(\/?[\w-]*\/?)/g;
-      let steamLinks = [];
-      messages.filter(msg => msg.author.id !== '1060455432843448360').forEach(msg => {
+      let gameLinks = [];
+      messages.filter(msg => msg.author.id !== KAVIBOT_USER_ID).forEach(msg => {
         const links = msg.content.match(steamLinkRegex);
         if (links) {
-          steamLinks.push(...links);
+          gameLinks.push(...links);
         }
       });
 
-      if (!foundSteamLinks[channel_id]) {
-        foundSteamLinks[channel_id] = new Set();
+      if (!foundGameLinks[channel_id]) {
+        foundGameLinks[channel_id] = new Set();
       }
-      steamLinks.forEach(link => {
-        foundSteamLinks[channel_id].add(link);
+      gameLinks.forEach(link => {
+        foundGameLinks[channel_id].add(link);
       })
-      const allSteamLinks = Array.from(foundSteamLinks[channel_id]);
+      const allGameLinks = Array.from(foundGameLinks[channel_id]);
 
       console.log(`Fetched ${messages.length} messages`);
-      console.log(`Filtered ${steamLinks.length} Steam links. New total: ${allSteamLinks.length}`);
+      console.log(`Filtered ${gameLinks.length} Steam links. New total: ${allGameLinks.length}`);
+
+      if (allGameLinks.length > 0) {
+        allGameLinks.push('https://playvalorant.com/en-us/');
+        allGameLinks.push('https://www.fortnite.com/?lang=en-US');
+      }
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          content: allSteamLinks.length > 0 ? allSteamLinks[Math.floor(Math.random() * allSteamLinks.length)] : "No Steam games found",
+          content: allGameLinks.length > 0 ? allGameLinks[Math.floor(Math.random() * allGameLinks.length)] : "No Steam games found",
         },
       });
     }
@@ -144,6 +155,86 @@ app.post('/interactions', async function(req, res) {
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: { content },
       })
+    }
+
+    if (name === STOP_REMINDER_COMMAND.name) {
+      const reminder = data.options[0].value.replace(' ', '-');
+      const userId = data.options[1] ? data.options[1].value : req.body.member.user.id;
+      const reminderKey = `${userId}-${reminder}`;
+      if (activeReminders[reminderKey]) {
+        activeReminders[reminderKey].task.stop();
+        delete activeReminders[reminderKey];
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: `Reminder, ${reminder}, removed for user`, flags: 64 },
+        })
+      }
+
+      const allReminders = Object.keys(activeReminders);
+      const userReminders = allReminders.filter(r => r.substring(0, r.indexOf('-')) == userId);
+      const userReminderNames = userReminders.map(r => r.substring(r.indexOf('-') + 1));
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: `Reminder, ${reminder}, does not exist for user. Available reminders: ${userReminderNames.toString()}`, flags: 64 },
+      })
+    }
+
+    if (name === REMINDER_COMMAND.name) {
+      const reminder = data.options[0].value.replace(' ', '-');
+      const description = data.options[1] ? data.options[1].value : '';
+      const userId = data.options[2] ? data.options[2].value : req.body.member.user.id;
+      const channelId = data.options[3] ? data.options[3].value : channel_id;
+
+      const reminderKey = `${userId}-${reminder}`;
+
+      if (activeReminders[reminderKey]) {
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: `Reminder, ${reminder}, already exists for user`, flags: 64 },
+        })
+      }
+
+      const time = '0 16 * * *' // 4 PM UTC
+      let sendCount = 0; // Counter to track messages sent
+      const maxSends = 4; // Maximum number of sends
+
+      const task = cron.schedule(time, async () => {
+        if (sendCount >= maxSends) {
+          task.stop();
+          delete activeReminders[reminderKey];
+          return;
+        }
+
+        let channel;
+        if (client.channels.cache.has(channelId)) {
+          channel = client.channels.cache.get(channelId);
+        } else {
+          try {
+            console.log('Fetching channel');
+            channel = await client.channels.fetch(channelId);
+          } catch (error) {
+            console.error('Error fetching channel:', error);
+          }
+        }
+
+        if (channel) {
+          console.log('Sending message to channel');
+          sendCount += 1;
+          try {
+            const reminderMessage = description.length > 0 ? `${reminder} - ${description}` : reminder;
+            await channel.send(`Reminder for <@${userId}>: ${reminderMessage}`);
+          } catch (error) {
+            console.error('Error sending message to channel:', error);
+          }
+        }
+      });
+
+      activeReminders[reminderKey] = { userId, reminder, description, channelId, task };
+
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: `Reminder ${reminder} set`, flags: 64 },
+      });
     }
 
     if (name === CHALLENGE_COMMAND.name && id) {
@@ -246,11 +337,12 @@ app.listen(PORT, () => {
   console.log('Listening on port', PORT);
 
   // Check if guild commands from commands.js are installed (if not, install them)
-  HasGuildCommands(process.env.APP_ID, process.env.GUILD_ID, [
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID, [
     FLOW_COMMAND,
     CHALLENGE_COMMAND,
     TIME_COMMAND,
-    // WEEKLY_COMMAND,
     GAME_COMMAND,
+    REMINDER_COMMAND,
+    STOP_REMINDER_COMMAND,
   ]);
 });

@@ -3,6 +3,9 @@ import axios from 'axios';
 import { verifyKey } from 'discord-interactions';
 import addDays from 'date-fns/addDays/index.js'
 
+const BWI_USER_ID = '467323668507131904';
+const KAV_USER_ID = '694510056217247795';
+
 export function VerifyDiscordRequest(clientKey) {
   return function (req, res, buf) {
     const signature = req.get('X-Signature-Ed25519');
@@ -95,9 +98,9 @@ export function getDateFromInput(input, timezone, userId) {
   const game = timeEndIndex >= dateString.length ? '' : dateString.substring(timeEndIndex).trim();
   dateString = dateString.substring(0, timeEndIndex).trim();
   const curMonth = (new Date()).getMonth() + 1;
-  let defaultTz = (curMonth >= 4 && curMonth <= 11 ? ' edt' : ' est')
-  if (userId == '467323668507131904' || userId == '694510056217247795') {
-    defaultTz = (curMonth >= 4 && curMonth <= 11 ? ' cdt' : ' cst')
+  let defaultTz = (curMonth >= 3 && curMonth < 11 ? ' edt' : ' est')
+  if (userId == BWI_USER_ID || userId == KAV_USER_ID) {
+    defaultTz = (curMonth >= 3 && curMonth < 11 ? ' cdt' : ' cst')
   }
   dateString += timezone ? ` ${timezone}` : defaultTz;
   let date = new Date(dateString);
