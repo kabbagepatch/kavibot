@@ -8,27 +8,28 @@ const BOOLEAN = 5;
 const USER = 6;
 const CHANNEL = 7;
 
-export async function SyncGuildCommands(appId, guildId, commands) {
+export async function SyncGuildCommands(appId, guildId, existingCommands, updatedCommands) {
   if (guildId === '' || appId === '') return;
+
+  console.log(`\nSyncing guild ${guildId}`)
 
   const endpoint = `applications/${appId}/guilds/${guildId}/commands`;
   try {
     const res = await DiscordRequest(endpoint, { method: 'GET' });
-    const existingCommands = await res.data;
-    const commandNames = commands.map(c => c.name);
-    for (const cmd of existingCommands) {
-      if (!commandNames.includes(cmd.name)) {
+    const installedCommands = await res.data;
+    const existingCommandNames = existingCommands.map(c => c.name);
+    for (const cmd of installedCommands) {
+      if (!existingCommandNames.includes(cmd.name)) {
         console.log(`Deleting unused command: "${cmd.name}"`);
         await RemoveGuildCommand(appId, guildId, cmd.id);
         console.log(`Deleted "${cmd.name}"`);
       }
     }
-
   } catch (err) {
     console.error(util.inspect(err.response.data, {showHidden: false, depth: null, colors: true}))
   }
 
-  commands.forEach((cmd) => {
+  updatedCommands.forEach((cmd) => {
     console.log(`Installing "${cmd.name}"`);
     InstallGuildCommand(appId, guildId, cmd);
     console.log(`Installed "${cmd.name}"`);
@@ -142,7 +143,7 @@ export const CHALLENGE_COMMAND = {
 
 export const REMINDER_COMMAND = {
   name: 'remind',
-  description: 'Add a daily reminder for Bwi',
+  description: 'Add a daily reminder',
   type: CHAT_INPUT,
   options: [
     {
@@ -169,8 +170,22 @@ export const REMINDER_COMMAND = {
   ]
 }
 
+export const SHOW_REMINDERS_COMMAND = {
+  name: 'showreminders',
+  description: 'Show the daily reminders',
+  type: CHAT_INPUT,
+  options: [
+    {
+      type: USER,
+      name: 'user',
+      description: 'User to get the reminders of',
+    },
+  ],
+}
+
+
 export const STOP_REMINDER_COMMAND = {
-  name: 'stopremind',
+  name: 'stopreminder',
   description: 'Stop a daily reminder',
   type: CHAT_INPUT,
   options: [

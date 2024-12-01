@@ -12,7 +12,7 @@ import { Client, GatewayIntentBits } from 'discord.js';
 
 import { VerifyDiscordRequest, DiscordRequest, getRandomEmoji, getDateFromInput, FULL_DAYS, getCompliment } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { CHALLENGE_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND } from './commands.js';
+import { CHALLENGE_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND, SHOW_REMINDERS_COMMAND } from './commands.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -173,9 +173,22 @@ app.post('/interactions', async function(req, res) {
       const allReminders = Object.keys(activeReminders);
       const userReminders = allReminders.filter(r => r.substring(0, r.indexOf('-')) == userId);
       const userReminderNames = userReminders.map(r => r.substring(r.indexOf('-') + 1));
+      const content = userReminderNames.length > 0 ? `Reminder, ${reminder}, does not exist for user. Available reminders: ${userReminderNames.toString()}` : 'No reminders set for user';
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: { content: `Reminder, ${reminder}, does not exist for user. Available reminders: ${userReminderNames.toString()}`, flags: 64 },
+        data: { content, flags: 64 },
+      })
+    }
+
+    if (name === SHOW_REMINDERS_COMMAND.name) {
+      const userId = (data.options && data.options[0]) ? data.options[0].value : req.body.member.user.id;
+      const allReminders = Object.keys(activeReminders);
+      const userReminders = allReminders.filter(r => r.substring(0, r.indexOf('-')) == userId);
+      const userReminderNames = userReminders.map(r => r.substring(r.indexOf('-') + 1));
+      const content = userReminderNames.length > 0 ? `Current reminders: ${userReminderNames.toString()}` : 'No reminders set for user';
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content, flags: 64 },
       })
     }
 
@@ -221,8 +234,8 @@ app.post('/interactions', async function(req, res) {
           console.log('Sending message to channel');
           sendCount += 1;
           try {
-            const reminderMessage = description.length > 0 ? `${reminder} - ${description}` : reminder;
-            await channel.send(`Reminder for <@${userId}>: ${reminderMessage}`);
+            const reminderMessage = description.length > 0 ? `: ${description}` : '';
+            await channel.send(`${reminder} Reminder for <@${userId}>${reminderMessage}`);
           } catch (error) {
             console.error('Error sending message to channel:', error);
           }
@@ -336,13 +349,38 @@ client.login(process.env.DISCORD_TOKEN);
 app.listen(PORT, () => {
   console.log('Listening on port', PORT);
 
-  // Check if guild commands from commands.js are installed (if not, install them)
-  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID, [
-    FLOW_COMMAND,
-    CHALLENGE_COMMAND,
-    TIME_COMMAND,
-    GAME_COMMAND,
-    REMINDER_COMMAND,
-    STOP_REMINDER_COMMAND,
-  ]);
+  SyncGuildCommands(
+    process.env.APP_ID,
+    process.env.GUILD_ID_BWI,
+    [
+      FLOW_COMMAND,
+      CHALLENGE_COMMAND,
+      TIME_COMMAND,
+      GAME_COMMAND,
+      REMINDER_COMMAND,
+      SHOW_REMINDERS_COMMAND,
+      STOP_REMINDER_COMMAND,
+    ],
+    [
+      STOP_REMINDER_COMMAND,
+      SHOW_REMINDERS_COMMAND,
+    ]);
+
+  SyncGuildCommands(
+    process.env.APP_ID,
+    process.env.GUILD_ID_KAV,
+    [
+      FLOW_COMMAND,
+      CHALLENGE_COMMAND,
+      TIME_COMMAND,
+      GAME_COMMAND,
+      REMINDER_COMMAND,
+      SHOW_REMINDERS_COMMAND,
+      STOP_REMINDER_COMMAND,
+    ],
+    [
+      REMINDER_COMMAND,
+      SHOW_REMINDERS_COMMAND,
+      STOP_REMINDER_COMMAND,
+    ]);
 });
