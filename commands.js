@@ -4,6 +4,7 @@ import { capitalize, DiscordRequest } from './utils.js';
 
 const CHAT_INPUT = 1;
 const STRING = 3;
+const INTEGER = 4;
 const BOOLEAN = 5;
 const USER = 6;
 const CHANNEL = 7;
@@ -29,9 +30,9 @@ export async function SyncGuildCommands(appId, guildId, existingCommands, update
     console.error(util.inspect(err.response.data, {showHidden: false, depth: null, colors: true}))
   }
 
-  updatedCommands.forEach((cmd) => {
+  updatedCommands.forEach(async (cmd) => {
     console.log(`Installing "${cmd.name}"`);
-    InstallGuildCommand(appId, guildId, cmd);
+    await InstallGuildCommand(appId, guildId, cmd);
     console.log(`Installed "${cmd.name}"`);
   });
 }
@@ -160,12 +161,22 @@ export const REMINDER_COMMAND = {
     {
       type: USER,
       name: 'user',
-      description: 'User to send reminder to',
+      description: 'User to send reminder to. By default, current user',
     },
     {
       type: CHANNEL,
       name: 'channel',
-      description: 'Channel to send reminder to',
+      description: 'Channel to send reminder to. By default, current channel',
+    },
+    {
+      type: INTEGER,
+      name: 'csthour',
+      description: 'The hour of day to send the reminder. Note: Must be in CST. By default, 10, for 10 am CST',
+    },
+    {
+      type: INTEGER,
+      name: 'nreminders',
+      description: 'Total Number of reminders to send. By default, 1',
     },
   ]
 }
