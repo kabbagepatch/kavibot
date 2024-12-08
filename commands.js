@@ -174,6 +174,11 @@ export const REMINDER_COMMAND = {
       description: 'The hour of day to send the reminder. Note: Must be in CST. By default, 10, for 10 am CST',
     },
     {
+      type: STRING,
+      name: 'cronexpression',
+      description: 'The exact UTC cron expression for your reminders. See https://crontab.guru for details',
+    },
+    {
       type: INTEGER,
       name: 'nreminders',
       description: 'Total Number of reminders to send. By default, 1',

@@ -189,8 +189,8 @@ app.post('/interactions', async function(req, res) {
       console.log(activeReminders);
       const allReminders = Object.keys(activeReminders);
       const userReminders = allReminders.filter(r => r.substring(0, r.indexOf('-')) == userId);
-      const userReminderNames = userReminders.map(r => r.substring(r.indexOf('-') + 1));
-      const content = userReminderNames.length > 0 ? `Current reminders: ${userReminderNames.toString()}` : 'No reminders set for user';
+      const userReminderNames = userReminders.map(r => `${r.substring(r.indexOf('-') + 1)} (${activeReminders[r].nReminders - activeReminders[r].sendCount} left)`);
+      const content = userReminderNames.length > 0 ? `Current reminders: ${userReminderNames.join(', ')}` : 'No reminders set for user';
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: { content, flags: 64 },
@@ -203,6 +203,7 @@ app.post('/interactions', async function(req, res) {
       const userId = options.user ?? req.body.member.user.id;
       const channelId = options.channel ?? channel_id;
       const cstHour = options.csthour ?? 10;
+      const cronExpression = options.cronexpression ?? `0 ${(cstHour + 6) % 24} * * *`;
       const nReminders = options.nreminders ?? 1;
 
       const reminderKey = `${userId}-${reminder}`;
@@ -214,9 +215,8 @@ app.post('/interactions', async function(req, res) {
         })
       }
 
-      const time = `0 ${(cstHour + 6) % 24} * * *`;
       let sendCount = 0; // Counter to track messages sent
-      const task = cron.schedule(time, async () => {
+      const task = cron.schedule(cronExpression, async () => {
         let channel;
         if (client.channels.cache.has(channelId)) {
           channel = client.channels.cache.get(channelId);
@@ -240,6 +240,7 @@ app.post('/interactions', async function(req, res) {
           }
         }
 
+        activeReminders[reminderKey].sendCount = sendCount;
         if (sendCount >= nReminders) {
           task.stop();
           delete activeReminders[reminderKey];
@@ -247,7 +248,7 @@ app.post('/interactions', async function(req, res) {
         }
       });
 
-      activeReminders[reminderKey] = { userId, reminder, description, channelId, nReminders, time, task };
+      activeReminders[reminderKey] = { userId, reminder, description, channelId, nReminders, cronExpression, task, sendCount };
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -354,33 +355,21 @@ client.login(process.env.DISCORD_TOKEN);
 app.listen(PORT, () => {
   console.log('Listening on port', PORT);
 
-  SyncGuildCommands(
-    process.env.APP_ID,
-    process.env.GUILD_ID_BWI,
-    [
-      FLOW_COMMAND,
-      CHALLENGE_COMMAND,
-      TIME_COMMAND,
-      GAME_COMMAND,
-      REMINDER_COMMAND,
-      SHOW_REMINDERS_COMMAND,
-      STOP_REMINDER_COMMAND,
-    ],
-    [
-    ]);
+  const existingCommands = [
+    FLOW_COMMAND,
+    CHALLENGE_COMMAND,
+    TIME_COMMAND,
+    GAME_COMMAND,
+    REMINDER_COMMAND,
+    SHOW_REMINDERS_COMMAND,
+    STOP_REMINDER_COMMAND,
+  ];
 
-  SyncGuildCommands(
-    process.env.APP_ID,
-    process.env.GUILD_ID_KAV,
-    [
-      FLOW_COMMAND,
-      CHALLENGE_COMMAND,
-      TIME_COMMAND,
-      GAME_COMMAND,
-      REMINDER_COMMAND,
-      SHOW_REMINDERS_COMMAND,
-      STOP_REMINDER_COMMAND,
-    ],
-    [
-    ]);
+  const updatedCommands = [
+    REMINDER_COMMAND,
+    SHOW_REMINDERS_COMMAND,
+  ];
+
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands, updatedCommands);
 });
