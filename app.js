@@ -366,8 +366,6 @@ app.listen(PORT, () => {
   ];
 
   const updatedCommands = [
-    REMINDER_COMMAND,
-    SHOW_REMINDERS_COMMAND,
   ];
 
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);
