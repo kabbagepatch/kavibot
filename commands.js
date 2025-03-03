@@ -30,11 +30,11 @@ export async function SyncGuildCommands(appId, guildId, existingCommands, update
     console.error(util.inspect(err.response.data, {showHidden: false, depth: null, colors: true}))
   }
 
-  updatedCommands.forEach(async (cmd) => {
+  for (const cmd of updatedCommands) {
     console.log(`Installing "${cmd.name}"`);
     await InstallGuildCommand(appId, guildId, cmd);
     console.log(`Installed "${cmd.name}"`);
-  });
+  }
 }
 
 export async function InstallGuildCommand(appId, guildId, command) {
@@ -92,7 +92,7 @@ export const TIME_COMMAND = {
     {
       type: STRING,
       name: 'date',
-      description: 'One or more comma-separated dates in format MM/dd/YYYY HH:MM Or Day HH:MM, and game',
+      description: 'One or more comma-separated dates in format MM/dd/YYYY h:MM am/pm Or Day h:MM am/pm',
       required: true,
     },
     {

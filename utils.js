@@ -97,10 +97,11 @@ export function getDateFromInput(input, timezone, userId) {
   timeEndIndex += 3;
   const game = timeEndIndex >= dateString.length ? '' : dateString.substring(timeEndIndex).trim();
   dateString = dateString.substring(0, timeEndIndex).trim();
+  const curDay = (new Date()).getDate();
   const curMonth = (new Date()).getMonth() + 1;
-  let defaultTz = (curMonth >= 3 && curMonth < 11 ? ' edt' : ' est')
+  let defaultTz = ((curMonth === 3 && curDay >= 9 || curMonth > 3) && curMonth < 11 ? ' edt' : ' est')
   if (userId == BWI_USER_ID || userId == KAV_USER_ID) {
-    defaultTz = (curMonth >= 3 && curMonth < 11 ? ' cdt' : ' cst')
+    defaultTz = ((curMonth === 3 && curDay >= 9 || curMonth > 3) && curMonth < 11 ? ' cdt' : ' cst')
   }
   dateString += timezone ? ` ${timezone}` : defaultTz;
   let date = new Date(dateString);
@@ -115,5 +116,9 @@ export function getDateFromInput(input, timezone, userId) {
     date = new Date(resultDate + ' ' + dateString.split(' ').slice(1).join(' '));
   }
 
-  return !isNaN(date.getTime()) ? `${FULL_DAYS[date.getHours() > 5 ? date.getDay() : (date.getDay() - 1 < 0 ? 6 : date.getDay() - 1)]} \\<t:${date.getTime() / 1000}:t>: ${game}` : 'Invalid Date passed in';
+  if (game.length > 0) {
+    game = ': ' + game;
+  }
+
+  return !isNaN(date.getTime()) ? `${FULL_DAYS[date.getHours() > 5 ? date.getDay() : (date.getDay() - 1 < 0 ? 6 : date.getDay() - 1)]} \\<t:${date.getTime() / 1000}:t>${game}` : 'Invalid Date passed in';
 }

@@ -143,7 +143,7 @@ app.post('/interactions', async function(req, res) {
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: { content },
+        data: { content, flags: 64 },
       })
     }
 
@@ -370,4 +370,5 @@ app.listen(PORT, () => {
 
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands, updatedCommands);
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_MERU, [TIME_COMMAND], []);
 });
