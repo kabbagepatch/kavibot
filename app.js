@@ -12,7 +12,7 @@ import { Client, GatewayIntentBits } from 'discord.js';
 
 import { VerifyDiscordRequest, DiscordRequest, getRandomEmoji, getDateFromInput, FULL_DAYS, getCompliment } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { CHALLENGE_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND, SHOW_REMINDERS_COMMAND } from './commands.js';
+import { CHALLENGE_COMMAND, HELLO_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND, SHOW_REMINDERS_COMMAND } from './commands.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +50,16 @@ app.post('/interactions', async function(req, res) {
     const options = {};
     if (data.options) {
       data.options.forEach(option => options[option.name] = option.value)
+    }
+
+    if (name === HELLO_COMMAND.name) {
+      // Send a message into the channel where command was triggered from
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          content: 'Omg Heyyy ' + getRandomEmoji(),
+        },
+      });
     }
 
     if (name === FLOW_COMMAND.name) {
@@ -356,6 +366,7 @@ app.listen(PORT, () => {
   console.log('Listening on port', PORT);
 
   const existingCommands = [
+    HELLO_COMMAND,
     FLOW_COMMAND,
     CHALLENGE_COMMAND,
     TIME_COMMAND,
@@ -366,9 +377,11 @@ app.listen(PORT, () => {
   ];
 
   const updatedCommands = [
+    HELLO_COMMAND
   ];
 
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands, updatedCommands);
-  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_MERU, [TIME_COMMAND], []);
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_MERU, [HELLO_COMMAND, TIME_COMMAND], [HELLO_COMMAND]);
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_NELLY, [HELLO_COMMAND, TIME_COMMAND], [HELLO_COMMAND]);
 });

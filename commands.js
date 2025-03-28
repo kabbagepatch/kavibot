@@ -65,6 +65,12 @@ function createCommandChoices() {
   }));
 }
 
+export const HELLO_COMMAND = {
+  name: 'hello',
+  description: 'Say hi!',
+  type: CHAT_INPUT,
+}
+
 export const FLOW_COMMAND = {
   name: 'flow',
   description: 'Tell me something about our Queen Flow',
