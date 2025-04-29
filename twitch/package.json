@@ -1,0 +1,25 @@
+{
+  "name": "kavibot",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "build-and-start": "tsc && node ./dist/app.js",
+    "start": "node ./dist/app.js"
+  },
+  "dependencies": {
+    "axios": "^0.24.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.13.2",
+    "tmi.js": "^1.8.5"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10",
+    "@types/node": "^16.11.11",
+    "@types/tmi.js": "^1.8.6",
+    "eslint": "^8.4.0",
+    "source-map-support": "^0.5.21",
+    "typescript": "^4.5.2"
+  }
+}

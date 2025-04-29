@@ -1,0 +1,26 @@
+{
+  "name": "kavibot",
+  "version": "0.0.1",
+  "description": "KaviBot",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "author": "Kavish",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.2.2",
+    "date-fns": "^2.29.3",
+    "discord-interactions": "^3.2.0",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.2.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}

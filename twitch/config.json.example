@@ -1,0 +1,10 @@
+{
+  "twitch": {
+    "token_endpoint": "https://id.twitch.tv/oauth2/token",
+    "username": "kavibot",
+    "client_id":"",
+    "client_secret":"",
+    "authorization_code":"",
+    "channel": "kavisherlock"
+  }
+}
