@@ -1,0 +1,89 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: kavisherlock
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: taskbot
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: taskbot-api
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:DeleteItem
+        - dynamodb:UpdateItem
+        - dynamodb:Scan
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-UserTasksTable
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - httpApi:
+          path: /
+          method: get
+  
+  add-tasks:
+    handler: tasks.add
+    name: add-tasks
+    description: Add a task to the task list
+    events:
+      - httpApi:
+          path: /user/{username}/tasks
+          method: post
+  
+  get-tasks:
+    handler: tasks.get
+    name: get-tasks
+    description: Get all tasks for a user
+    events:
+      - httpApi:
+          path: /user/{username}/tasks
+          method: get
+
+  remove-task:
+    handler: tasks.remove
+    name: remove-task
+    description: Remove a task from the task list
+    events:
+      - httpApi:
+          path: /user/{username}/tasks/{id}
+          method: delete
+
+  remove-tasks:
+    handler: tasks.removeMultiple
+    name: remove-tasks
+    description: Remove multiple comma-separated tasks from the task list
+    events:
+      - httpApi:
+          path: /user/{username}/tasks
+          method: delete
+
+  active-task:
+    handler: tasks.active
+    name: active-task
+    description: Mark a task as active
+    events:
+      - httpApi:
+          path: /user/{username}/tasks/{id}/active
+          method: post
+
+resources:
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-UserTasksTable
+        AttributeDefinitions:
+          - AttributeName: username
+            AttributeType: S
+        KeySchema:
+          - AttributeName: username
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
