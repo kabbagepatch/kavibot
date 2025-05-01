@@ -1,0 +1,34 @@
+import { Client } from 'tmi.js';
+
+import { Command } from '../models/command';
+
+import streamers from '../streamers.json';
+const recentSOs : { [key : string] : string[] } = {};
+
+const handleRandomSoCommand = (twitchClient: Client, channel: string) => {
+  if (!recentSOs[channel]) recentSOs[channel] = [];
+
+  let randomStreamer = streamers[Math.floor(Math.random() * streamers.length)];
+  while(recentSOs[channel].includes(randomStreamer)) {
+    randomStreamer = streamers[Math.floor(Math.random() * streamers.length)];
+  }
+
+  if (recentSOs[channel].length >= 5) {
+    recentSOs[channel].shift(); // Remove the first (oldest) element
+  }
+  recentSOs[channel].push(randomStreamer);
+
+  twitchClient.say(channel, `So many lovely streamers, who do we shoutout...`);
+  setTimeout(() => {
+    twitchClient.say(channel, `/me thinking`);
+  }, 3000);
+  setTimeout(() => {
+    twitchClient.say(channel, `!so ${randomStreamer}`);
+  }, 6000);
+};
+
+export const RANDOM_SO_COMMAND = new Command(
+  '!randomso',
+  handleRandomSoCommand,
+  true,
+);

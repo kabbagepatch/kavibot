@@ -7,7 +7,7 @@ exports.get = async (event) => {
   try {
     const tasks = await getTasks(username);
     return successResponse({
-      tasks: getTasksObject(tasks),
+      tasks,
       message: 'Tasks retrieved successfully',
     });
   } catch (error) {

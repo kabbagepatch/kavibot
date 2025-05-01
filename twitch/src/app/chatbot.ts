@@ -5,11 +5,10 @@ import { TwitchTokenDetails } from './models/twitchTokenDetails.models';
 import { ChatBotConfig } from './config/model';
 import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidator';
 
-import agents from './agents.json';
-import streamers from './streamers.json';
-
-const agentsDone : { [key: string] : { agent : string, time : number } } = {};
-const recentSOs : { [key : string] : string[] } = {};
+import { BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND } from './commands/simple';
+import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
+import { RANDOM_SO_COMMAND } from './commands/shoutout';
+import { ADD_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, taskCommandsEnabled } from './commands/tasks';
 
 export class TwitchChatBot {
   public twitchClient!: Client;
@@ -73,100 +72,52 @@ export class TwitchChatBot {
   }
 
   private setupBotBehavior() {
-    const commands = ['!test', '!welcome', '!hello', '!frooty', '!ore', '!slay', '!tin', '!reading', '!agent', '!randomso'];
-
     this.twitchClient.on('clearchat', (channel) => {
-      const agentKeys = Object.keys(agentsDone);
-      agentKeys.forEach(key => {
-        if (key.includes(channel)) {
-          delete agentsDone[key];
-        }
-      });
+      clearAgentsDone(channel);
     });
 
     this.twitchClient.on('message', (channel, tags, message, self) => {
       if (self) return;
 
-      if (commands.includes(message)) {
-        const username = tags.username ?? 'blank';
-        const isMod = tags.mod || tags.badges?.broadcaster;
-        console.info({ channel, username, message })
-        switch (message) {
-          case '!test': this.twitchClient.say(channel, `bumble194Omg heyyyy`); break;
+      const commands = [
+        TEST_COMMAND,
+        HELLO_COMMAND,
+        WELCOME_COMMAND,
+        FROOTY_COMMAND,
+        ORE_COMMAND,
+        SLAY_COMMAND,
+        TIN_COMMAND,
+        BOT_FIGHT_COMMAND,
+        AGENT_COMMAND,
+        RANDOM_SO_COMMAND,
+        ENABLE_TASK_COMMAND,
+        DISABLE_TASK_COMMAND,
+      ];
 
-          case '!welcome': this.twitchClient.say(channel, `bumble194Omg so many cuties in chat. welcome to bwi stream`); break;
+      if (taskCommandsEnabled[channel]) {
+        commands.push(ADD_TASK_COMMAND, GET_TASKS_COMMAND);
+      }
 
-          case '!hello': this.twitchClient.say(channel, `Hello, @${username}! Welcome to the channel.`); break;
+      for (const command of commands) {
+        if (command.isCommand(message)) {
+          const username = tags.username ?? 'blank';
+          const isMod = tags.mod || tags.badges?.broadcaster;
+      
+          console.info({ channel, username, message })
 
-          case '!frooty': this.twitchClient.say(channel, `Things are a bit fruity around here 🌈 bumble194Uwu`); break;
+          if (command.modsOnly && !isMod) {
+            this.twitchClient.say(channel, `Only moderators can use this command :]`);
+            return;
+          }
+          if (command.broadcasterOnly && !tags.badges?.broadcaster) {
+            this.twitchClient.say(channel, `Only the broadcaster can use this command :]`);
+            return;
+          }
 
-          case '!ore': this.twitchClient.say(channel, `Ore what?`); break;
-
-          case '!slay': this.twitchClient.say(channel, `slay 💅`); break;
-
-          case '!tin': this.twitchClient.say(channel, `Like the metal 🎸🤘🔥`); break;
-
-          case '!reading': 
-            if (username === 'kavisherlock') {
-              this.twitchClient.say(channel, `I'm currently reading Oathbringer by Brandon Sanderson :book: and listening to The Two Towers by J. R. R. Tolkien :headphones:`)
-            }
-            break;
-
-          case '!agent':
-            const agentKey = `${username}${channel}`
-            if (agentKey in agentsDone && isWithinLast4Hours(agentsDone[agentKey].time)) {
-              this.twitchClient.say(channel, `@${username} You already found your agent for today, ${agentsDone[agentKey].agent}`);
-              return;
-            }
-
-            this.twitchClient.say(channel, `Let's find out which valorant agent you are, @${username}`);
-            const agentNames = Object.keys(agents);
-            const randomAgent = agentNames[Math.floor(Math.random() * agentNames.length)];
-            const lines : string[] = agents[randomAgent];
-            const randomLine = lines[Math.floor(Math.random() * lines.length)];
-            agentsDone[agentKey] = { agent: randomAgent, time: Date.now() };
-            setTimeout(() => {
-              this.twitchClient.say(channel, `/me thinking`);
-            }, 2000);
-            setTimeout(() => {
-              this.twitchClient.say(channel, `@${username} You are ${randomAgent}. ${randomLine}`);
-            }, 6000);
-            break;
-
-          case '!randomso':
-            if (!isMod) {
-              if (username === 'AlwaysKorean') this.twitchClient.say(channel, `Nice try Roan :]`);
-              else this.twitchClient.say(channel, `Only moderators can use this command :]`);
-              return;
-            }
-
-            if (!recentSOs[channel]) recentSOs[channel] = [];
-
-            let randomStreamer = streamers[Math.floor(Math.random() * streamers.length)];
-            while(recentSOs[channel].includes(randomStreamer)) {
-              randomStreamer = streamers[Math.floor(Math.random() * streamers.length)];
-            }
-
-            if (recentSOs[channel].length >= 5) {
-              recentSOs[channel].shift(); // Remove the first (oldest) element
-            }
-            recentSOs[channel].push(randomStreamer);
-
-            this.twitchClient.say(channel, `So many lovely streamers, who do we shoutout...`);
-            setTimeout(() => {
-              this.twitchClient.say(channel, `/me thinking`);
-            }, 3000);
-            setTimeout(() => {
-              this.twitchClient.say(channel, `!so ${randomStreamer}`);
-            }, 6000);
+          command.execute(this.twitchClient, channel, tags, message);
+          return;
         }
       }
     });
   }
-}
-
-const isWithinLast4Hours = (timestamp : number) => {
-  const now = Date.now();
-  const twelveHoursInMs = 4 * 60 * 60 * 1000;
-  return now - timestamp <= twelveHoursInMs;
 }
