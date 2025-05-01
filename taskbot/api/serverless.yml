@@ -45,23 +45,23 @@ functions:
           path: /user/{username}/tasks
           method: get
 
-  remove-task:
-    handler: tasks.remove
-    name: remove-task
-    description: Remove a task from the task list
+  complete-task:
+    handler: tasks.complete
+    name: complete-task
+    description: Complete a task from the task list
     events:
       - httpApi:
-          path: /user/{username}/tasks/{id}
-          method: delete
+          path: /user/{username}/tasks/{id}/complete
+          method: post
 
-  remove-tasks:
-    handler: tasks.removeMultiple
-    name: remove-tasks
-    description: Remove multiple comma-separated tasks from the task list
+  complete-tasks:
+    handler: tasks.completeMultiple
+    name: complete-tasks
+    description: Complete multiple comma-separated tasks from the task list
     events:
       - httpApi:
-          path: /user/{username}/tasks
-          method: delete
+          path: /user/{username}/tasks/complete
+          method: post
 
   active-task:
     handler: tasks.active

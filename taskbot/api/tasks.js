@@ -46,7 +46,7 @@ exports.add = async (event) => {
 
     await updateTasks(username, tasks);
     return successResponse({
-      tasks: getTasksObject(tasks),
+      tasks,
       message: 'Task(s) added successfully',
     }, 201);
   } catch (error) {
@@ -55,20 +55,23 @@ exports.add = async (event) => {
   }
 }
 
-exports.remove = async (event) => {
+exports.complete = async (event) => {
   const username = event.pathParameters.username;
-  let taskId = parseInt(event.pathParameters.id, 10);
+  const taskId = parseInt(event.pathParameters.id, 10);
   if (isNaN(taskId) || taskId < 0) {
-    return errorResponse(400, { message: 'Invalid task ID' });
+    return errorResponse(400, { message: 'Please ensure the task is a valid number' });
   }
 
   try {
     let tasks = await getTasks(username);
-    if ((!tasks.backlog && taskId > 0) || taskId >= tasks.backlog.length) {
-      return errorResponse(400, { message: 'Task ID out of range' });
+    if (!tasks.active && taskId === 0) {
+      return errorResponse(400, { message: 'You do not have an active task' });
+    }
+    if (!tasks.backlog || taskId > tasks.backlog.length) {
+      return errorResponse(400, { message: `There is no task at position [${taskId}] in your backlog!` });
     }
 
-    if (taskId == 0) {
+    if (taskId === 0) {
       tasks.active = undefined;
     } else {
       tasks.backlog = tasks.backlog.filter((_, index) => (index + 1) !== taskId);
@@ -77,16 +80,16 @@ exports.remove = async (event) => {
     await updateTasks(username, tasks);
 
     return successResponse({
-      tasks: getTasksObject(tasks),
-      message: 'Tasks removed successfully',
-    }, 204);
+      tasks,
+      message: 'Tasks completed successfully',
+    }, 200);
   } catch (error) {
     console.error(error);
     return errorResponse(500, error);
   }
 }
 
-exports.removeMultiple = async (event) => {
+exports.completeMultiple = async (event) => {
   const username = event.pathParameters.username;
   const data = JSON.parse(event.body || '{}');
   if (!data || !data.taskIds) {
@@ -94,24 +97,33 @@ exports.removeMultiple = async (event) => {
   }
 
   const taskIds = data.taskIds.split(',').map((id) => parseInt(id.trim(), 10));
-  if (taskIds.some((id) => isNaN(id) || id <= 0)) {
-    return errorResponse(400, { message: 'Invalid task ID(s)' });
+  if (taskIds.some((id) => isNaN(id) || id < 0)) {
+    return errorResponse(400, { message: 'Please ensure the task is a valid number.' });
   }
 
   try {
-    let tasks = await getTasks(username);
-    if (!tasks.backlog || taskIds.some((id) => id >= tasks.backlog.length)) {
-      return errorResponse(400, { message: 'Task ID(s) out of range' });
+    let tasks = await getTasks(username);      
+    let nTasksCompleted = 0;
+    if (tasks.active && taskIds.includes(0)) {
+      tasks.active = undefined;
+      nTasksCompleted += 1;
+    }
+    if (tasks.backlog && tasks.backlog.length > 0) {
+      const prevBacklogLength = tasks.backlog.length;
+      tasks.backlog = tasks.backlog.filter((_, index) => !taskIds.includes(index + 1));
+      nTasksCompleted += prevBacklogLength - tasks.backlog.length;
     }
 
-    tasks.backlog = tasks.backlog.filter((_, index) => !taskIds.includes(index + 1));
+    if (nTasksCompleted === 0) {
+      return errorResponse(400, { message: 'There are no tasks at given positions in your backlog!' });
+    }
 
     await updateTasks(username, tasks);
 
     return successResponse({
-      tasks: getTasksObject(tasks),
-      message: 'Tasks removed successfully',
-    }, 204);
+      tasks,
+      message: 'Tasks completed successfully',
+    }, 200);
   } catch (error) {
     console.error(error);
     return errorResponse(500, error);
@@ -120,16 +132,19 @@ exports.removeMultiple = async (event) => {
 
 exports.active = async (event) => {
   const username = event.pathParameters.username;
-  const taskId = event.pathParameters.id;
-  if (isNaN(taskId) || taskId <= 0) {
-    return errorResponse(400, { message: 'Invalid task ID' });
+  const taskId = parseInt(event.pathParameters.id, 10);
+  if (isNaN(taskId) || taskId < 0) {
+    return errorResponse(400, { message: 'Please ensure the task is a valid number' });
+  }
+  if (taskId === 0) {
+    return errorResponse(400, { message: 'Task is already active' });
   }
 
   try {
     const tasks = await getTasks(username);
 
     if (!tasks.backlog || taskId >= tasks.backlog.length) {
-      return errorResponse(400, { message: 'Task ID out of range' });
+      return errorResponse(400, { message: `There is no task at position [${taskId}] in your backlog!` });
     }
 
     const currentActiveTask = tasks.active;
@@ -142,7 +157,7 @@ exports.active = async (event) => {
     await updateTasks(username, tasks);
 
     return successResponse({
-      tasks: getTasksObject(tasks),
+      tasks,
       message: 'Task activated successfully',
     });
   } catch (error) {

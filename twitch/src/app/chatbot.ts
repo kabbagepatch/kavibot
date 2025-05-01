@@ -8,7 +8,7 @@ import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidat
 import { BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND } from './commands/simple';
 import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
 import { RANDOM_SO_COMMAND } from './commands/shoutout';
-import { ADD_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, taskCommandsEnabled } from './commands/tasks';
+import { ADD_TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled } from './commands/tasks';
 
 export class TwitchChatBot {
   public twitchClient!: Client;
@@ -90,6 +90,8 @@ export class TwitchChatBot {
         BOT_FIGHT_COMMAND,
         AGENT_COMMAND,
         RANDOM_SO_COMMAND,
+        COMPLETE_TASK_COMMAND,
+        REMOVE_TASK_COMMAND,
         ENABLE_TASK_COMMAND,
         DISABLE_TASK_COMMAND,
       ];
