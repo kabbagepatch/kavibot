@@ -67,7 +67,7 @@ export const TIN_COMMAND = new Command(
 export const BOT_FIGHT_COMMAND = new Command(
   '!botfight',
   (twitchClient: Client, channel: string) => {
-    twitchClient.say(channel, '@StreamElements you a dumb hoe @bumblebottt more like bumble bitch');
+    twitchClient.say(channel, '@StreamElements you\'re spare parts @bumblebottt more like bumble buttt');
   }
 );
 

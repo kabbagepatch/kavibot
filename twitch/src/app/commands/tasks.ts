@@ -6,8 +6,45 @@ import { Command } from '../models/command';
 const BASE_URL = 'https://jvs88lexu7.execute-api.us-east-1.amazonaws.com';
 
 export const taskCommandsEnabled : { [key : string] : boolean }  = {};
-const taskCache: { [key: string]: { tasks: any; timestamp: number } } = {};
+const taskCache: { [key: string]: { tasks: any; timestamp: number, completed: number } } = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const initializeTaskCache = (username: string) => {
+  if (!taskCache[username]) {
+    taskCache[username] = { tasks: {}, timestamp: Date.now(), completed: 0 };
+  }
+  if (!taskCache[username].tasks) {
+    taskCache[username].tasks = {
+      active: '',
+      backlog: [],
+    };
+  }
+}
+
+const updateTaskCache = async (username: string, tasks: any) => {
+  initializeTaskCache(username);
+
+  const now = Date.now();
+  taskCache[username].tasks = tasks;
+  taskCache[username].timestamp = now;
+};
+
+const incrementCompletedTasks = (username: string, increment = 1) => {
+  initializeTaskCache(username);
+
+  taskCache[username].completed += increment;
+};
+
+const clearTasksCache = (username: string) => {
+  initializeTaskCache(username);
+
+  taskCache[username].tasks = {
+    active: '',
+    backlog: [],
+  };
+  taskCache[username].timestamp = Date.now();
+  taskCache[username].completed = 0;
+};
 
 export const ENABLE_TASK_COMMAND = new Command(
   '!enabletasks',
@@ -38,10 +75,7 @@ const fetchTasks = async (username: string): Promise<any> => {
 
   try {
     const response = await axios.get(`${BASE_URL}/user/${username}/tasks`);
-    taskCache[username] = {
-      tasks: response.data.tasks,
-      timestamp: now,
-    };
+    updateTaskCache(username, response.data.tasks);
     return response.data.tasks;
   } catch (error : any) {
     console.error('Error fetching tasks:', error.message);
@@ -49,54 +83,126 @@ const fetchTasks = async (username: string): Promise<any> => {
   }
 };
 
-const updateTaskCache = async (username: string, tasks: any) => {
-  const now = Date.now();
-  taskCache[username] = {
-    tasks,
-    timestamp: now,
-  };
+const handleAddTasks = async (addType : string, twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => {
+  let tasksString = message.substring(6);
+  if (tasksString.length < 1) {
+    twitchClient.say(channel, 'Please provide a task to add.');
+    return;
+  }
+
+  if (tasksString.startsWith(';')) tasksString = tasksString.substring(1);
+  if (tasksString.endsWith(';')) tasksString = tasksString.substring(0, tasksString.length - 1);
+
+  const newTasks = tasksString.split(';').map((task) => task.trim());
+  let output = addType === 'task' ? `✨ New Task Added: ${newTasks[0]}. ` : '✨ New Tasks Added ';
+  await fetchTasks(tags.username || '');
+  if (newTasks.length > 0) {
+    if (addType !== 'task' || newTasks.length > 1) {
+      output += '📝 Backlog: '
+    }
+    newTasks.forEach((task, index) => {
+      let backlogIndex = 0;
+      if (addType === 'soon') {
+        backlogIndex = 1;
+      } else if (addType === 'later') {
+        backlogIndex = taskCache[tags.username || ''].tasks.backlog.length + 1;
+      }
+      if (index == 0 && addType === 'task') {
+        return;
+      } else {
+        output += `🟣 [${index + backlogIndex}]: ${task} `;
+      }
+    });
+  }
+  
+  axios.post(
+    `${BASE_URL}/user/${tags.username}/tasks`,
+    {
+      tasksString,
+      addType,
+    }
+  ).then((response) => {
+    const tasks = response.data.tasks;
+    updateTaskCache(tags.username || '', tasks);
+  }).catch((error) => {
+    console.error('Error updating tasks:', error.message);
+  });
+
+  twitchClient.say(channel, output);
 };
 
-export const ADD_TASK_COMMAND = new Command(
-  '!task',
-  (twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => {
-    let tasksString = message.substring(6);
-    if (tasksString.length < 1) {
-      twitchClient.say(channel, 'Please provide a task to add.');
-      return;
-    }
-
-    if (tasksString.startsWith(';')) tasksString = tasksString.substring(1);
-    if (tasksString.endsWith(';')) tasksString = tasksString.substring(0, tasksString.length - 1);
-
-    axios.post(
-      `${BASE_URL}/user/${tags.username}/tasks`,
-      {
-        tasksString,
-        addType: 'task',
-      }
-    ).then((response) => {
-      const tasks = response.data.tasks;
-      updateTaskCache(tags.username || '', tasks);
-    }).catch((error) => {
-      console.error('Error updating tasks:', error.message);
-    });
-
-    const newTasks = tasksString.split(';').map((task) => task.trim());
-    let output = `✨ New Task: ${newTasks[0]}. `;
-    if (newTasks.length > 1) {
-      output += '📝 Backlog: '
-      newTasks.forEach((task, index) => {
-        if (index == 0) {
-          return;
-        } else {
-          output += `🟣 ${index}: ${task} `;
-        }
-      });
-    }
-
-    twitchClient.say(channel, output);
+const handleActiveTask = (twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => {
+  const taskId = parseInt(message.substring(5));
+  if (isNaN(taskId) || taskId < 0) {
+    twitchClient.say(channel, 'Please provide a valid task ID.');
+    return;
   }
+  if (taskId === 0) {
+    twitchClient.say(channel, 'Task is already active.');
+    return;
+  }
+
+  axios.post(`${BASE_URL}/user/${tags.username}/tasks/${taskId}/active`).then((response) => {
+    updateTaskCache(tags.username || '', response.data.tasks);
+    twitchClient.say(channel, `✨ Active Task: ${response.data.tasks.active}`);
+  }).catch((error) => {
+    console.error('Error setting active task:', error.message);
+    if (error.response?.data?.error) {
+      console.error('Error response:', error.response.data.error);
+      twitchClient.say(channel, error.response.data.error);
+    }
+  });
+};
+
+const handleRemoveTask = (command: string, twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => {
+  const tasksString = command === 'complete' ? message.substring(6) : message.substring(8);
+  const completedTasks = (!tasksString || tasksString.length < 1 || tasksString.trim() === 'next') ? [0] : tasksString.split(',').map((task) => parseInt(task.trim()));
+  let url = `${BASE_URL}/user/${tags.username}/tasks/complete`;
+  if (completedTasks.length == 1) {
+    url = `${BASE_URL}/user/${tags.username}/tasks/${completedTasks[0]}/complete`;
+  }
+  axios.post(url, { taskIds: tasksString }).then((response) => {
+    const tasks = response.data.tasks;
+    let output = `✨ Task(s) ${command}d: `;
+    const prevTasks = taskCache[tags.username || ''].tasks;
+    completedTasks.forEach((task) => {
+      if (task === 0) {
+        output += `🟣 ${prevTasks.active} `;
+      } else {
+        output += `🟣 [${task}] ${prevTasks.backlog[task - 1]} `;
+      }
+    });
+    if (command === 'complete') {
+      incrementCompletedTasks(tags.username || '', completedTasks.length);
+      output += `✨ Total Completed: ${taskCache[tags.username || ''].completed}`;
+    }
+    updateTaskCache(tags.username || '', tasks);
+    twitchClient.say(channel, output);
+    if (tasksString === 'next') {
+      handleActiveTask(twitchClient, channel, tags, '!now 1');
+    }
+  }).catch((error) => {
+    console.error(command === 'complete' ? 'Error completing tasks:' : 'Error removing tasks:', error.message);
+    if (error.response?.data?.error) {
+      console.error('Error response:', error.response.data.error);
+      twitchClient.say(channel, error.response.data.error);
+    }
+  });
+};
+
+export const TASK_COMMAND = new Command(
+  '!task',
+  (twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => handleAddTasks('task', twitchClient, channel, tags, message),
+)
+
+export const SOON_COMMAND = new Command(
+  '!soon',
+  (twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => handleAddTasks('soon', twitchClient, channel, tags, message),
+)
+
+export const LATER_COMMAND = new Command(
+  '!later',
+  (twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => handleAddTasks('later', twitchClient, channel, tags, message),
 )
 
 export const GET_TASKS_COMMAND = new Command(
@@ -126,54 +232,10 @@ export const GET_TASKS_COMMAND = new Command(
   }
 );
 
-const handleRemoveTask = (command: string, twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => {
-  const tasksString = command === 'complete' ? message.substring(6) : message.substring(8);
-  fetchTasks(tags.username || '').then((taskCache) => {
-    if (tasksString.length < 1) {
-      if (taskCache.active) {
-        axios.post(`${BASE_URL}/user/${tags.username}/tasks/0/complete`).then((response) => {
-          const tasks = response.data.tasks;
-          updateTaskCache(tags.username || '', tasks);
-        }).catch((error) => {
-          console.error(command === 'complete' ? 'Error completing tasks:' : 'Error removing tasks:' , error.message);
-        });
-
-        twitchClient.say(channel, `✨ Task ${command}d: ${taskCache.active}`);
-      }
-    } else {
-      const completedTasks = tasksString.split(',').map((task) => parseInt(task.trim()));
-      let url = `${BASE_URL}/user/${tags.username}/tasks/complete`;
-      if (completedTasks.length == 1) {
-        if (completedTasks[0] > taskCache.backlog.length) {
-          twitchClient.say(channel, `There is no task at position [${completedTasks[0]}] in your backlog!`);
-          return;
-        }
-
-        url = `${BASE_URL}/user/${tags.username}/tasks/${completedTasks[0]}/complete`;
-      }
-      axios.post(url, { taskIds: tasksString }).then((response) => {
-        const tasks = response.data.tasks;
-        updateTaskCache(tags.username || '', tasks);
-        let output = `✨ Task(s) ${command}d: `;
-        const completedTasks = tasksString.split(';').map((task) => parseInt(task.trim()));
-        completedTasks.forEach((task) => {
-          if (task === 0) {
-            output += `🟣 ${taskCache.active} `;
-          } else {
-            output += `🟣 [${task}] ${taskCache.backlog[task - 1]} `;
-          }
-        });
-        twitchClient.say(channel, output);
-      }).catch((error) => {
-        console.error(command === 'complete' ? 'Error completing tasks:' : 'Error removing tasks:', error.message);
-        if (error.response?.data?.error) {
-          console.error('Error response:', error.response.data.error);
-          twitchClient.say(channel, error.response.data.error);
-        }
-      });
-    }
-  });
-}
+export const NOW_COMMAND = new Command(
+  '!now',
+  handleActiveTask,
+);
 
 export const COMPLETE_TASK_COMMAND = new Command(
   '!done',
@@ -183,4 +245,16 @@ export const COMPLETE_TASK_COMMAND = new Command(
 export const REMOVE_TASK_COMMAND = new Command(
   '!remove',
   (twitchClient: Client, channel: string, tags : ChatUserstate, message : string) => handleRemoveTask('remove', twitchClient, channel, tags, message),
+);
+
+export const CLEAR_COMMAND = new Command(
+  '!clear',
+  (twitchClient: Client, channel: string, tags : ChatUserstate) => {
+    axios.post(`${BASE_URL}/user/${tags.username}/tasks/clear`).then(() => {
+      clearTasksCache(tags.username || '');
+      twitchClient.say(channel, '✨ Tasks cleared.');
+    }).catch((error) => {
+      console.error('Error clearing tasks:', error.message);
+    });
+  }
 );

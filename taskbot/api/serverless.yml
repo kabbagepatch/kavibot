@@ -72,6 +72,15 @@ functions:
           path: /user/{username}/tasks/{id}/active
           method: post
 
+  clear-tasks:
+    handler: tasks.clear
+    name: clear-tasks
+    description: Clear all tasks for a user
+    events:
+      - httpApi:
+          path: /user/{username}/tasks/clear
+          method: post
+
 resources:
   Resources:
     usersTable:

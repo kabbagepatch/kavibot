@@ -65,7 +65,7 @@ exports.complete = async (event) => {
   try {
     let tasks = await getTasks(username);
     if (!tasks.active && taskId === 0) {
-      return errorResponse(400, { message: 'You do not have an active task' });
+      return errorResponse(400, { message: 'You do not have an active task!' });
     }
     if (!tasks.backlog || taskId > tasks.backlog.length) {
       return errorResponse(400, { message: `There is no task at position [${taskId}] in your backlog!` });
@@ -93,7 +93,7 @@ exports.completeMultiple = async (event) => {
   const username = event.pathParameters.username;
   const data = JSON.parse(event.body || '{}');
   if (!data || !data.taskIds) {
-    return missingDataErrorResponse;
+    data.taskIds = '0';
   }
 
   const taskIds = data.taskIds.split(',').map((id) => parseInt(id.trim(), 10));
@@ -148,17 +148,40 @@ exports.active = async (event) => {
     }
 
     const currentActiveTask = tasks.active;
-    tasks.active = tasks.backlog[taskId];
-    for (let i = taskId; i < tasks.backlog.length - 1; i += 1) {
-      tasks.backlog[i] = tasks.backlog[i + 1];
+    const newActive = tasks.backlog[taskId - 1];
+    const newBacklog = tasks.backlog.filter((_, index) => (index + 1) !== taskId);
+    if (currentActiveTask) {
+      tasks.backlog.push(currentActiveTask);
     }
-    tasks.backlog[tasks.backlog.length - 1] = currentActiveTask;
+    const newTasks = {
+      active: newActive,
+      backlog: newBacklog,
+    }
 
-    await updateTasks(username, tasks);
+    await updateTasks(username, newTasks);
 
     return successResponse({
-      tasks,
+      tasks: newTasks,
       message: 'Task activated successfully',
+    });
+  } catch (error) {
+    console.error(error);
+    return errorResponse(500, error);
+  }
+}
+
+exports.clear = async (event) => {
+  const username = event.pathParameters.username;
+
+  try {
+    const tableName = 'taskbot-api-UserTasksTable';
+    const deleteParams = {
+      TableName: tableName,
+      Key: { username },
+    };
+    await dynamoDB.delete(deleteParams).promise();
+    return successResponse({
+      message: 'Tasks cleared successfully',
     });
   } catch (error) {
     console.error(error);
