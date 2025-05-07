@@ -55,3 +55,13 @@ export const SET_AUDIOBOOK_COMMAND = new Command(
   },
   true,
 );
+
+export const READING_GOAL_COMMAND = new Command(
+  '!readinggoal',
+  (twitchClient: Client, channel: string, tags : ChatUserstate) => {
+    if (tags.username === 'kavisherlock') {
+      const output = 'I\'ve read 12 books this year so far 📚 My goal is 52!';
+      twitchClient.say(channel, output);
+    }
+  }
+)

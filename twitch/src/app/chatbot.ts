@@ -10,7 +10,7 @@ import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
 import { RANDOM_SO_COMMAND } from './commands/shoutout';
 import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND } from './commands/tasks';
 import { cp } from 'fs';
-import { READING_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND } from './commands/reading';
+import { READING_COMMAND, READING_GOAL_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND } from './commands/reading';
 
 export class TwitchChatBot {
   public twitchClient!: Client;
@@ -93,6 +93,7 @@ export class TwitchChatBot {
         READING_COMMAND,
         SET_BOOK_COMMAND,
         SET_AUDIOBOOK_COMMAND,
+        READING_GOAL_COMMAND,
         BOT_FIGHT_COMMAND,
         AGENT_COMMAND,
         RANDOM_SO_COMMAND,
