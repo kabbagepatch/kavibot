@@ -1,6 +1,11 @@
-import { ChatUserstate, Client } from 'tmi.js';
+import { Client } from 'tmi.js';
 
 import { Command } from '../models/command';
+
+export const COMMANDS_COMMAND = new Command(
+  '!commands',
+  () => {}
+);
 
 export const TEST_COMMAND = new Command(
   '!test',
@@ -70,12 +75,3 @@ export const BOT_FIGHT_COMMAND = new Command(
     twitchClient.say(channel, '@StreamElements you\'re spare parts @bumblebottt more like bumble buttt');
   }
 );
-
-export const READING_COMMAND = new Command(
-  '!reading',
-  (twitchClient: Client, channel: string, tags : ChatUserstate) => {
-    if (tags.username === 'kavisherlock') {
-      twitchClient.say(channel, 'I\'m currently reading Oathbringer by Brandon Sanderson :book: and listening to The 11/22/63 by Stephen King :headphones:')
-    }
-  }
-)

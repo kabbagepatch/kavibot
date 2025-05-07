@@ -5,10 +5,12 @@ import { TwitchTokenDetails } from './models/twitchTokenDetails.models';
 import { ChatBotConfig } from './config/model';
 import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidator';
 
-import { BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND } from './commands/simple';
+import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND } from './commands/simple';
 import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
 import { RANDOM_SO_COMMAND } from './commands/shoutout';
 import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND } from './commands/tasks';
+import { cp } from 'fs';
+import { READING_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND } from './commands/reading';
 
 export class TwitchChatBot {
   public twitchClient!: Client;
@@ -80,6 +82,7 @@ export class TwitchChatBot {
       if (self) return;
 
       const commands = [
+        COMMANDS_COMMAND,
         TEST_COMMAND,
         HELLO_COMMAND,
         WELCOME_COMMAND,
@@ -87,6 +90,9 @@ export class TwitchChatBot {
         ORE_COMMAND,
         SLAY_COMMAND,
         TIN_COMMAND,
+        READING_COMMAND,
+        SET_BOOK_COMMAND,
+        SET_AUDIOBOOK_COMMAND,
         BOT_FIGHT_COMMAND,
         AGENT_COMMAND,
         RANDOM_SO_COMMAND,
@@ -114,7 +120,16 @@ export class TwitchChatBot {
             return;
           }
 
-          command.execute(this.twitchClient, channel, tags, message);
+          if (COMMANDS_COMMAND.isCommand(message)) {
+            const commandList = commands
+              .filter(cmd => !cmd.modsOnly || isMod)
+              .filter(cmd => !cmd.broadcasterOnly)
+              .map(cmd => cmd.usage)
+              .join(', ');
+            this.twitchClient.say(channel, `Available commands: ${commandList}`);
+          } else {
+            command.execute(this.twitchClient, channel, tags, message);
+          }
           return;
         }
       }
