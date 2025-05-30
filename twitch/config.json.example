@@ -5,6 +5,6 @@
     "client_id":"",
     "client_secret":"",
     "authorization_code":"",
-    "channel": "kavisherlock"
+    "channels": ["kavisherlock"]
   }
 }

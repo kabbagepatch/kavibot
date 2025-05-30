@@ -66,6 +66,24 @@ export const DISABLE_TASK_COMMAND = new Command(
   true,
 );
 
+export const TASK_HELP_COMMAND = new Command(
+  '!taskhelp',
+  (twitchClient: Client, channel: string) => {
+    const helpMessage = `
+✨ Task Commands Help: ✨
+!task <task> - Add a new task to the backlog. ✨
+!backlog - View the current tasks in the backlog. ✨
+!now <taskId> - Set a task as active. ✨
+!done <taskId> - Mark a task as completed. ✨
+!remove <taskId> - Remove a task from the backlog. ✨
+!clear - Clear all tasks. ✨
+Task ids need to be numbers. ✨
+Use these commands to manage your tasks effectively!
+    `;
+    twitchClient.say(channel, helpMessage);
+  },
+);
+
 const fetchTasks = async (username: string): Promise<any> => {
   const now = Date.now();
 

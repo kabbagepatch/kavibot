@@ -5,12 +5,12 @@ import { TwitchTokenDetails } from './models/twitchTokenDetails.models';
 import { ChatBotConfig } from './config/model';
 import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidator';
 
-import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND } from './commands/simple';
+import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND, LURK_COMMAND, UNLURK_COMMAND } from './commands/simple';
 import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
-import { RANDOM_SO_COMMAND } from './commands/shoutout';
-import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND } from './commands/tasks';
-import { cp } from 'fs';
+import { RANDOM_SO_COMMAND, SO_COMMAND } from './commands/shoutout';
+import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND, TASK_HELP_COMMAND } from './commands/tasks';
 import { READING_COMMAND, READING_GOAL_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND } from './commands/reading';
+import { Command } from './models/command';
 
 export class TwitchChatBot {
   public twitchClient!: Client;
@@ -22,7 +22,7 @@ export class TwitchChatBot {
     this.tokenDetails = await this.fetchAccessToken(this.config.token);
     this.twitchClient = new tmi.Client(
       this.buildConnectionConfig(
-        this.config.channel,
+        this.config.channels,
         this.config.username,
         this.tokenDetails.access_token
       )
@@ -58,7 +58,7 @@ export class TwitchChatBot {
     }
   }
 
-  private buildConnectionConfig(channel: string, username: string, accessToken: string) {
+  private buildConnectionConfig(channels: string[], username: string, accessToken: string) {
     return {
       options: { debug: false },
       connection: {
@@ -69,26 +69,23 @@ export class TwitchChatBot {
         username: `${username}`,
         password: `oauth:${accessToken}`
       },
-      channels: ['kavisherlock', channel],
+      channels: ['kavisherlock', ...channels],
     };
   }
 
   private setupBotBehavior() {
-    this.twitchClient.on('clearchat', (channel) => {
-      clearAgentsDone(channel);
-    });
+    const commonCommands = [
+      COMMANDS_COMMAND,
+      TEST_COMMAND,
+      HELLO_COMMAND,
+      WELCOME_COMMAND,
+      SLAY_COMMAND,
+    ];
 
-    this.twitchClient.on('message', (channel, tags, message, self) => {
-      if (self) return;
-
-      const commands = [
-        COMMANDS_COMMAND,
-        TEST_COMMAND,
-        HELLO_COMMAND,
-        WELCOME_COMMAND,
+    const channelCommands = {
+      'kavisherlock': [
         FROOTY_COMMAND,
         ORE_COMMAND,
-        SLAY_COMMAND,
         TIN_COMMAND,
         READING_COMMAND,
         SET_BOOK_COMMAND,
@@ -96,13 +93,44 @@ export class TwitchChatBot {
         READING_GOAL_COMMAND,
         BOT_FIGHT_COMMAND,
         AGENT_COMMAND,
+        SO_COMMAND,
         RANDOM_SO_COMMAND,
         ENABLE_TASK_COMMAND,
         DISABLE_TASK_COMMAND,
-      ];
+        LURK_COMMAND,
+        UNLURK_COMMAND,
+      ],
+      'bumblebwiii': [
+        FROOTY_COMMAND,
+        ORE_COMMAND,
+        TIN_COMMAND,
+        READING_COMMAND,
+        READING_GOAL_COMMAND,
+        BOT_FIGHT_COMMAND,
+        AGENT_COMMAND,
+        RANDOM_SO_COMMAND,
+        ENABLE_TASK_COMMAND,
+        DISABLE_TASK_COMMAND,
+      ],
+      'merubelle': [
+        SO_COMMAND,
+        LURK_COMMAND,
+        UNLURK_COMMAND,
+      ],
+    }
+
+    this.twitchClient.on('clearchat', (channel) => {
+      clearAgentsDone(channel);
+    });
+
+    this.twitchClient.on('message', (channel, tags, message, self) => {
+      if (self) return;
+
+      let commands : Command[] = channelCommands[channel.slice(1)] || [];
+      commands = [...commonCommands, ...commands];
 
       if (taskCommandsEnabled[channel]) {
-        commands.push(NOW_COMMAND, TASK_COMMAND, SOON_COMMAND, LATER_COMMAND, GET_TASKS_COMMAND, COMPLETE_TASK_COMMAND, REMOVE_TASK_COMMAND, CLEAR_COMMAND);
+        commands.push(TASK_HELP_COMMAND, NOW_COMMAND, TASK_COMMAND, SOON_COMMAND, LATER_COMMAND, GET_TASKS_COMMAND, COMPLETE_TASK_COMMAND, REMOVE_TASK_COMMAND, CLEAR_COMMAND);
       }
 
       for (const command of commands) {
@@ -112,7 +140,7 @@ export class TwitchChatBot {
       
           console.info({ channel, username, message })
 
-          if (command.modsOnly && !isMod) {
+          if (command.modsOnly && !isMod && username !== 'kavisherlock') {
             this.twitchClient.say(channel, `Only moderators can use this command :]`);
             return;
           }
@@ -124,7 +152,7 @@ export class TwitchChatBot {
           if (COMMANDS_COMMAND.isCommand(message)) {
             const commandList = commands
               .filter(cmd => !cmd.modsOnly || isMod)
-              .filter(cmd => !cmd.broadcasterOnly)
+              .filter(cmd => !cmd.broadcasterOnly || tags.badges?.broadcaster)
               .map(cmd => cmd.usage)
               .join(', ');
             this.twitchClient.say(channel, `Available commands: ${commandList}`);

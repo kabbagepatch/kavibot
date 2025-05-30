@@ -1,9 +1,9 @@
-import { Client } from 'tmi.js';
+import { ChatUserstate, Client } from 'tmi.js';
 
 import { Command } from '../models/command';
 
 import streamers from '../streamers.json';
-const recentSOs : { [key : string] : string[] } = {};
+const recentSOs : { [key : string] : string[] } = {};  
 
 const handleRandomSoCommand = (twitchClient: Client, channel: string) => {
   if (!recentSOs[channel]) recentSOs[channel] = [];
@@ -13,7 +13,7 @@ const handleRandomSoCommand = (twitchClient: Client, channel: string) => {
     randomStreamer = streamers[Math.floor(Math.random() * streamers.length)];
   }
 
-  if (recentSOs[channel].length >= 5) {
+  if (recentSOs[channel].length >= 8) {
     recentSOs[channel].shift(); // Remove the first (oldest) element
   }
   recentSOs[channel].push(randomStreamer);
@@ -30,5 +30,17 @@ const handleRandomSoCommand = (twitchClient: Client, channel: string) => {
 export const RANDOM_SO_COMMAND = new Command(
   '!randomso',
   handleRandomSoCommand,
+  true,
+);
+
+export const SO_COMMAND = new Command(
+  '!so',
+  (twitchClient: Client, channel: string, tags : ChatUserstate, message: string) => {
+    let userToShoutout = message.split(' ').slice(1).join(' ');
+    if (userToShoutout[0] === '@') {
+      userToShoutout = userToShoutout.slice(1);
+    }
+    twitchClient.say(channel, `Show some love to ${userToShoutout} at https://twitch.tv/${userToShoutout} <3 !`);
+  },
   true,
 );

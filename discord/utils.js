@@ -120,5 +120,5 @@ export function getDateFromInput(input, timezone, userId) {
     game = ': ' + game;
   }
 
-  return !isNaN(date.getTime()) ? `${FULL_DAYS[date.getHours() > 5 ? date.getDay() : (date.getDay() - 1 < 0 ? 6 : date.getDay() - 1)]} \\<t:${date.getTime() / 1000}:t>${game}` : 'Invalid Date passed in';
+  return !isNaN(date.getTime()) ? `${FULL_DAYS[date.getHours() > 5 ? date.getDay() : (date.getDay() - 1 < 0 ? 6 : date.getDay() - 1)]}: \\<t:${date.getTime() / 1000}:t>${game}` : 'Invalid Date passed in';
 }

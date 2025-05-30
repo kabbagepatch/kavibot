@@ -24,9 +24,7 @@ export class ChatBotConfig {
   @IsString()
   public authorizationCode: string;
 
-  @IsNotEmpty()
-  @IsString()
-  public channel: string;
+  public channels: string[] = [];
 
   constructor(
     tokenEndpoint: string,
@@ -35,13 +33,13 @@ export class ChatBotConfig {
     clientId: string,
     clientSecret: string,
     authorizationCode: string,
-    channel: string
+    channels: string[]
   ) {
     this.tokenEndpoint = tokenEndpoint;
     this.token = token;
     this.username = username;
     this.clientSecret = clientSecret;
-    this.channel = channel;
+    this.channels = channels;
     this.clientId = clientId;
     this.authorizationCode = authorizationCode;
   }

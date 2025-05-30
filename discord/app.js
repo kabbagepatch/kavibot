@@ -24,8 +24,8 @@ const activeGames = {};
 const foundGameLinks = {};
 
 const KAVIBOT_USER_ID = '1060455432843448360';
-const REMINDER_CHANNEL_ID = '1312621033026490438';
 const BWI_USER_ID = '467323668507131904';
+const KAV_USER_ID = '694510056217247795';
 
 const activeReminders = {};
 
@@ -146,8 +146,23 @@ app.post('/interactions', async function(req, res) {
       console.log(data);
       const dateStrings = data.options[0].value;
       const timezone = data.options[1] ? data.options[1].value : null;
-      let content = dateStrings.split(',').map(dateString => getDateFromInput(dateString, timezone, req.body.member.user.id)).join('\n');
-      if (req.body.member.user.id != '467323668507131904') {
+      const dateStringOutputs = dateStrings.split(',').map(dateString => getDateFromInput(dateString, timezone, req.body.member.user.id));
+      let fullDateStrings = [];
+      FULL_DAYS.forEach((day) => {
+        if (day === 'Sunday') return;
+        const i = dateStringOutputs.findIndex(d => d.startsWith(day));
+        if (i !== -1) {
+          fullDateStrings.push(dateStringOutputs[i]);
+        } else {
+          fullDateStrings.push(`${day}: \\*off\\*`);
+        }
+      });
+      fullDateStrings.push('Sunday: \\*off\\*');
+
+      let content = dateStringOutputs.join('\n');
+      if (req.body.member.user.id === BWI_USER_ID && dateStringOutputs.length > 1) {
+        content = fullDateStrings.join('\n');
+      } else {
         content += "\n\\*times automatically converted to your time zone\\*\n";
       }
 
@@ -377,11 +392,11 @@ app.listen(PORT, () => {
   ];
 
   const updatedCommands = [
-    HELLO_COMMAND
+    TIME_COMMAND
   ];
 
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands, updatedCommands);
-  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_MERU, [HELLO_COMMAND, TIME_COMMAND], [HELLO_COMMAND]);
-  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_NELLY, [HELLO_COMMAND, TIME_COMMAND], [HELLO_COMMAND]);
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_MERU, [HELLO_COMMAND, TIME_COMMAND], []);
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_NELLY, [HELLO_COMMAND, TIME_COMMAND], []);
 });

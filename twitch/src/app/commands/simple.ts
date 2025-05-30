@@ -21,7 +21,7 @@ export const TEST_COMMAND = new Command(
 export const WELCOME_COMMAND = new Command(
   '!welcome',
   (twitchClient: Client, channel: string) => {
-    let output = 'so many cuties in chat. welcome to bwi stream';
+    let output = `so many cuties in chat. welcome to ${channel.slice(1)} stream`;
     if (channel === '#bumblebwiii') {
       output = `bumble194Omg ${output} bumble194Uwu`;
     }
@@ -34,6 +34,22 @@ export const HELLO_COMMAND = new Command(
   (twitchClient: Client, channel: string, tags: any) => {
     const username = tags.username;
     twitchClient.say(channel, `Hello, @${username}! Welcome to the channel.`);
+  }
+);
+
+export const LURK_COMMAND = new Command(
+  '!lurk',
+  (twitchClient: Client, channel: string, tags: any) => {
+    const username = tags.username;
+    twitchClient.say(channel, `@${username} is lurking!! tysm we love you !!!`);
+  }
+);
+
+export const UNLURK_COMMAND = new Command(
+  '!unlurk',
+  (twitchClient: Client, channel: string, tags: any) => {
+    const username = tags.username;
+    twitchClient.say(channel, `@${username} has come back from their long venture!!!`);
   }
 );
 
