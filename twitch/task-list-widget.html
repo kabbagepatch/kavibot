@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task List</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 0 0.5em;
+      font-size: 1.2em;
+      font-weight: bold;
+      background: #333;
+      height: 500px;
+    }
+    #container {
+      animation: scroll-up linear infinite;
+    }
+    #user {
+      font-weight: bolder;
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      color: #f4f4f4;
+      margin-bottom: 0.25em
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .task {
+      background: white;
+      margin-bottom: 0.5em;
+      padding: 0.25em;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    #active-task {
+      margin-bottom: 0.5em;
+    }
+    #backlog {
+      color: #f4f4f4;
+      margin-bottom: 0;
+    }
+    @keyframes scroll-up {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-50%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="user">kavisherlock</div>
+    <div id="active-task" class="task"></div>
+    <div id="backlog"></div>
+    <ul id="task-list">
+      <li>Loading tasks...</li>
+    </ul>
+  </div>
+
+  <script>
+    async function loadTasks() {
+      const listElement = document.getElementById('task-list');
+      try {
+        const BASE_URL = 'https://jvs88lexu7.execute-api.us-east-1.amazonaws.com';
+        const username = 'kavisherlock';
+        const response = await fetch(`${BASE_URL}/user/${username}/tasks`);
+        if (!response.ok) throw new Error('Failed to load');
+        const responseData = await response.json();
+        const tasks = responseData.tasks || {};
+        const backlog = tasks.backlog || [];
+        const activeTask = tasks.active;
+        listElement.innerHTML = ''; // Clear loading message
+        if (activeTask) {
+          const activeTaskElement = document.getElementById('active-task');
+          activeTaskElement.innerHTML = `<strong>Active Task:</strong> ${activeTask}`;
+        } else {
+          document.getElementById('active-task').innerHTML = 'No Active Task';
+        }
+        if (backlog.length > 0) {
+          document.getElementById('backlog').innerHTML = '<strong>Backlog:</strong>';
+        } else {
+          document.getElementById('backlog').innerHTML = '';
+        }
+        backlog.forEach((task, i) => {
+          const item = document.createElement('li');
+          item.className = 'task';
+          item.textContent = `${i + 1}. ${task}`;
+          listElement.appendChild(item);
+        });
+        if (backlog.length === 0 && !activeTask) {
+          listElement.innerHTML = '<li>No tasks found.</li>';
+        }
+
+        const container = document.getElementById('container');
+        const containerHeight = container.scrollHeight;
+        const pixelsPerSecond = 30;
+        const duration = containerHeight / pixelsPerSecond;
+        if (containerHeight > 500)
+          container.style.animationDuration = `${duration}s`;
+      } catch (err) {
+        listElement.innerHTML = `<li>Error loading tasks: ${err.message}</li>`;
+      }
+    }
+
+    loadTasks();
+    setInterval(loadTasks, 5000);
+  </script>
+</body>
+</html>
