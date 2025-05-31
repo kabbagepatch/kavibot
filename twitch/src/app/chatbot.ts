@@ -8,7 +8,7 @@ import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidat
 import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND, LURK_COMMAND, UNLURK_COMMAND } from './commands/simple';
 import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
 import { RANDOM_SO_COMMAND, SO_COMMAND } from './commands/shoutout';
-import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND, TASK_HELP_COMMAND } from './commands/tasks';
+import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND, TASK_HELP_COMMAND, clearActiveUsers } from './commands/tasks';
 import { READING_COMMAND, READING_GOAL_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND } from './commands/reading';
 import { Command } from './models/command';
 
@@ -69,7 +69,7 @@ export class TwitchChatBot {
         username: `${username}`,
         password: `oauth:${accessToken}`
       },
-      channels: ['kavisherlock', ...channels],
+      channels: ['kavi_bot', ...channels],
     };
   }
 
@@ -84,6 +84,23 @@ export class TwitchChatBot {
 
     const channelCommands = {
       'kavisherlock': [
+        FROOTY_COMMAND,
+        ORE_COMMAND,
+        TIN_COMMAND,
+        READING_COMMAND,
+        SET_BOOK_COMMAND,
+        SET_AUDIOBOOK_COMMAND,
+        READING_GOAL_COMMAND,
+        BOT_FIGHT_COMMAND,
+        AGENT_COMMAND,
+        SO_COMMAND,
+        RANDOM_SO_COMMAND,
+        ENABLE_TASK_COMMAND,
+        DISABLE_TASK_COMMAND,
+        LURK_COMMAND,
+        UNLURK_COMMAND,
+      ],
+      'kavi_bot': [
         FROOTY_COMMAND,
         ORE_COMMAND,
         TIN_COMMAND,
@@ -121,12 +138,13 @@ export class TwitchChatBot {
 
     this.twitchClient.on('clearchat', (channel) => {
       clearAgentsDone(channel);
+      clearActiveUsers(channel);
     });
 
     this.twitchClient.on('message', (channel, tags, message, self) => {
       if (self) return;
 
-      let commands : Command[] = channelCommands[channel.slice(1)] || [];
+      let commands : Command[] = channelCommands[channel.substring(1)] || [];
       commands = [...commonCommands, ...commands];
 
       if (taskCommandsEnabled[channel]) {

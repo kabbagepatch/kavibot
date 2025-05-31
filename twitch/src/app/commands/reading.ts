@@ -11,10 +11,10 @@ export const READING_COMMAND = new Command(
     if (tags.username === 'kavisherlock') {
       let output = '';
       if (book) {
-        output += `I\'m currently reading: ${book} 📖 `;
+        output += `I\'m currently reading ${book} 📖 `;
       }
       if (audiobook) {
-        output += `I\'m currently listening to: ${audiobook} 🎧 `;
+        output += `I\'m currently listening to ${audiobook} 🎧 `;
       }
       if (!book && !audiobook) {
         output = 'I\'m not currently reading anything :(';
@@ -60,7 +60,7 @@ export const READING_GOAL_COMMAND = new Command(
   '!readinggoal',
   (twitchClient: Client, channel: string, tags : ChatUserstate) => {
     if (tags.username === 'kavisherlock') {
-      const output = 'I\'ve read 12 books this year so far 📚 My goal is 52!';
+      const output = 'I\'ve read 17 books this year so far 📚 My goal is 52!';
       twitchClient.say(channel, output);
     }
   }

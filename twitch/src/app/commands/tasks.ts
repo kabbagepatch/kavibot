@@ -6,8 +6,39 @@ import { Command } from '../models/command';
 const BASE_URL = 'https://jvs88lexu7.execute-api.us-east-1.amazonaws.com';
 
 export const taskCommandsEnabled : { [key : string] : boolean }  = {};
+export const activeUsers: { [key: string]: string[] } = {};
 const taskCache: { [key: string]: { tasks: any; timestamp: number, completed: number } } = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const addActiveUser = (channel: string, username: string) => {
+  if (channel[0] === '#') {
+    channel = channel.substring(1);
+  }
+  if (!activeUsers[channel]) {
+    activeUsers[channel] = [];
+  }
+  if (!activeUsers[channel].includes(username)) {
+    axios.post(`${BASE_URL}/channel/${channel}/users`, { user: username }).then(() => {
+      activeUsers[channel].push(username);
+    }).catch((error) => {
+      console.error('Error adding user:', error.message);
+    });
+  }
+}
+
+export const clearActiveUsers = (channel: string) => {
+  if (channel[0] === '#') {
+    channel = channel.substring(1);
+  }
+  if (!activeUsers[channel]) {
+    return;
+  }
+  axios.delete(`${BASE_URL}/channel/${channel}/users`).then(() => {
+    activeUsers[channel] = [];
+  }).catch((error) => {
+    console.error('Error clearing users:', error.message);
+  });
+}
 
 const initializeTaskCache = (username: string) => {
   if (!taskCache[username]) {
@@ -142,6 +173,7 @@ const handleAddTasks = async (addType : string, twitchClient: Client, channel: s
   ).then((response) => {
     const tasks = response.data.tasks;
     updateTaskCache(tags.username || '', tasks);
+    addActiveUser(channel, tags.username || '')
   }).catch((error) => {
     console.error('Error updating tasks:', error.message);
   });
@@ -162,6 +194,7 @@ const handleActiveTask = (twitchClient: Client, channel: string, tags : ChatUser
 
   axios.post(`${BASE_URL}/user/${tags.username}/tasks/${taskId}/active`).then((response) => {
     updateTaskCache(tags.username || '', response.data.tasks);
+    addActiveUser(channel, tags.username || '')
     twitchClient.say(channel, `✨ Active Task: ${response.data.tasks.active}`);
   }).catch((error) => {
     console.error('Error setting active task:', error.message);
@@ -195,6 +228,7 @@ const handleRemoveTask = (command: string, twitchClient: Client, channel: string
       output += `✨ Total Completed: ${taskCache[tags.username || ''].completed}`;
     }
     updateTaskCache(tags.username || '', tasks);
+    addActiveUser(channel, tags.username || '')
     twitchClient.say(channel, output);
     if (tasksString === 'next') {
       handleActiveTask(twitchClient, channel, tags, '!now 1');
@@ -242,6 +276,8 @@ export const GET_TASKS_COMMAND = new Command(
           output += `🟣 [${index + 1}]: ${task} `;
         });
       }
+
+      addActiveUser(channel, tags.username || '')
 
       twitchClient.say(channel, output);
     }).catch((error) => {

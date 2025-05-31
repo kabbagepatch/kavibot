@@ -17,16 +17,38 @@ provider:
         - dynamodb:DeleteItem
         - dynamodb:UpdateItem
         - dynamodb:Scan
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-UserTasksTable
+      Resource: 
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-UserTasksTable
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:service}-ChannelsTable
 
 functions:
-  hello:
-    handler: handler.hello
+  add-user:
+    handler: users.add
+    name: add-user
+    description: Add a new active user to the channel
     events:
       - httpApi:
-          path: /
+          path: /channel/{channel}/users
+          method: post
+
+  get-users:
+    handler: users.get
+    name: get-users
+    description: Get all active users in the channel
+    events:
+      - httpApi:
+          path: /channel/{channel}/users
           method: get
-  
+
+  clear-users:
+    handler: users.clear
+    name: clear-users
+    description: Clear all active users in the channel
+    events:
+      - httpApi:
+          path: /channel/{channel}/users
+          method: delete
+
   add-tasks:
     handler: tasks.add
     name: add-tasks
@@ -92,6 +114,19 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: username
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    channelsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-ChannelsTable
+        AttributeDefinitions:
+          - AttributeName: channel
+            AttributeType: S
+        KeySchema:
+          - AttributeName: channel
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1

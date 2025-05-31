@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task List</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 0 0.5em;
+      font-size: 1.2em;
+      font-weight: bold;
+      background: #333;
+      height: 500px;
+    }
+    #container {
+      animation: scroll-up linear infinite;
+    }
+    .user {
+      font-weight: bolder;
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      color: #f4f4f4;
+      margin-bottom: 0.25em
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .task {
+      background: white;
+      margin-bottom: 0.5em;
+      padding: 0.25em;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .active-task {
+      margin-bottom: 0.5em;
+    }
+    .backlog {
+      color: #f4f4f4;
+      margin-bottom: 0;
+    }
+    @keyframes scroll-up {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-50%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+  </div>
+
+  <script>
+    function addUserSection(username) {
+      // User section already exists
+      if (document.getElementById(`user-section-${username}`)) {
+        return;
+      }
+
+      const container = document.getElementById('container');
+      const userSection = document.createElement('div');
+      userSection.id = `user-section-${username}`;
+      const userElement = document.createElement('div');
+      userElement.className = 'user';
+      userElement.id = `user-${username}`;
+      userElement.textContent = username;
+      userSection.appendChild(userElement);
+      const activeTaskElement = document.createElement('div');
+      activeTaskElement.className = 'task active-task';
+      activeTaskElement.id = `active-task-${username}`;
+      userSection.appendChild(activeTaskElement);
+      const backlogElement = document.createElement('div');
+      backlogElement.className = 'backlog';
+      backlogElement.id = `backlog-${username}`;
+      backlogElement.textContent = 'Backlog:';
+      userSection.appendChild(backlogElement);
+      const taskListElement = document.createElement('ul');
+      taskListElement.className = 'task-list';
+      taskListElement.id = `task-list-${username}`;
+      taskListElement.innerHTML = '<li>Loading tasks...</li>';
+      userSection.appendChild(taskListElement);
+
+      container.appendChild(userSection);
+    }
+
+    async function loadTasks(username) {
+      const listElement = document.getElementById(`task-list-${username}`);
+      try {
+        const BASE_URL = 'https://jvs88lexu7.execute-api.us-east-1.amazonaws.com';
+        const response = await fetch(`${BASE_URL}/user/${username}/tasks`);
+        if (!response.ok) throw new Error('Failed to load tasks');
+        const responseData = await response.json();
+        const tasks = responseData.tasks || {};
+        const backlog = tasks.backlog || [];
+        const activeTask = tasks.active;
+        listElement.innerHTML = ''; // Clear loading message
+        if (activeTask) {
+          const activeTaskElement = document.getElementById(`active-task-${username}`);
+          activeTaskElement.innerHTML = `<strong>Active Task:</strong> ${activeTask}`;
+        } else {
+          document.getElementById(`active-task-${username}`).innerHTML = 'No Active Task';
+        }
+        if (backlog.length > 0) {
+          document.getElementById(`backlog-${username}`).innerHTML = '<strong>Backlog:</strong>';
+        } else {
+          document.getElementById(`backlog-${username}`).innerHTML = '';
+        }
+        backlog.forEach((task, i) => {
+          const item = document.createElement('li');
+          item.className = 'task';
+          item.textContent = `${i + 1}. ${task}`;
+          listElement.appendChild(item);
+        });
+      } catch (err) {
+        listElement.innerHTML = `<li>Error loading tasks: ${err.message}</li>`;
+      }
+    }
+
+    async function loadActiveUsers(channel) {
+      try {
+        const BASE_URL = 'https://jvs88lexu7.execute-api.us-east-1.amazonaws.com';
+        const response = await fetch(`${BASE_URL}/channel/${channel}/users`);
+        if (!response.ok) throw new Error('Failed to load active users');
+        const data = await response.json();
+        const users = data.activeUsers || [];
+        if (users.length === 0) {
+          document.getElementById('container').innerHTML = ''
+          return;
+        }
+        for (const user of users) {
+          addUserSection(user);
+          await loadTasks(user);
+        }
+
+        const container = document.getElementById('container');
+        const containerHeight = container.scrollHeight;
+        const pixelsPerSecond = 30;
+        const duration = containerHeight / pixelsPerSecond;
+        if (containerHeight > 500) {
+          container.style.animationDuration = `${duration}s`;
+        }
+      } catch (err) {
+        console.error('Error loading active users:', err);
+      }
+    }
+
+    loadActiveUsers('kavi_bot');
+    setInterval(() => loadActiveUsers('kavi_bot'), 5000);
+  </script>
+</body>
+</html>

@@ -143,7 +143,7 @@ exports.active = async (event) => {
   try {
     const tasks = await getTasks(username);
 
-    if (!tasks.backlog || taskId >= tasks.backlog.length) {
+    if (!tasks.backlog || taskId > tasks.backlog.length) {
       return errorResponse(400, { message: `There is no task at position [${taskId}] in your backlog!` });
     }
 
@@ -151,7 +151,7 @@ exports.active = async (event) => {
     const newActive = tasks.backlog[taskId - 1];
     const newBacklog = tasks.backlog.filter((_, index) => (index + 1) !== taskId);
     if (currentActiveTask) {
-      tasks.backlog.push(currentActiveTask);
+      newBacklog.push(currentActiveTask);
     }
     const newTasks = {
       active: newActive,
