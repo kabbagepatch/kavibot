@@ -19,6 +19,6 @@ export class Command {
   }
 
   isCommand = (message: string) => {
-    return message === this.usage || message.startsWith(`${this.usage} `);
+    return message.toLowerCase() === this.usage || message.toLowerCase().startsWith(`${this.usage} `);
   }
 };

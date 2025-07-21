@@ -7,9 +7,9 @@ import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidat
 
 import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND, LURK_COMMAND, UNLURK_COMMAND } from './commands/simple';
 import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
-import { RANDOM_SO_COMMAND, SO_COMMAND } from './commands/shoutout';
+import { RANDOM_SO_COMMAND, SO_COMMAND, NEXT_SO_COMMAND } from './commands/shoutout';
 import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND, TASK_HELP_COMMAND, clearActiveUsers } from './commands/tasks';
-import { READING_COMMAND, READING_GOAL_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND } from './commands/reading';
+import { READING_COMMAND, READING_GOAL_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND, SET_BOOKS_READ_COMMAND } from './commands/reading';
 import { Command } from './models/command';
 
 export class TwitchChatBot {
@@ -53,7 +53,7 @@ export class TwitchChatBot {
       return await TwitchTokenResponseValidator.parseResponse(response.data);
     } catch(error : any) {
       console.log('Failed to get Twitch OAuth Token');
-      console.log(error.data.message);
+      console.log(error?.data?.message);
       throw error;
     }
   }
@@ -82,58 +82,51 @@ export class TwitchChatBot {
       SLAY_COMMAND,
     ];
 
+    const kaviCommands = [
+      FROOTY_COMMAND,
+      ORE_COMMAND,
+      TIN_COMMAND,
+      READING_COMMAND,
+      SET_BOOK_COMMAND,
+      SET_AUDIOBOOK_COMMAND,
+      SET_BOOKS_READ_COMMAND,
+      READING_GOAL_COMMAND,
+      BOT_FIGHT_COMMAND,
+      AGENT_COMMAND,
+      SO_COMMAND,
+      RANDOM_SO_COMMAND,
+      NEXT_SO_COMMAND,
+      ENABLE_TASK_COMMAND,
+      DISABLE_TASK_COMMAND,
+      LURK_COMMAND,
+      UNLURK_COMMAND,
+    ];
+
+    const bwiCommands = [
+      FROOTY_COMMAND,
+      ORE_COMMAND,
+      TIN_COMMAND,
+      READING_COMMAND,
+      READING_GOAL_COMMAND,
+      BOT_FIGHT_COMMAND,
+      AGENT_COMMAND,
+      RANDOM_SO_COMMAND,
+      ENABLE_TASK_COMMAND,
+      DISABLE_TASK_COMMAND,
+    ];
+
+    const streamerCommands = [
+      SO_COMMAND,
+      LURK_COMMAND,
+      UNLURK_COMMAND,
+    ];
+
     const channelCommands = {
-      'kavisherlock': [
-        FROOTY_COMMAND,
-        ORE_COMMAND,
-        TIN_COMMAND,
-        READING_COMMAND,
-        SET_BOOK_COMMAND,
-        SET_AUDIOBOOK_COMMAND,
-        READING_GOAL_COMMAND,
-        BOT_FIGHT_COMMAND,
-        AGENT_COMMAND,
-        SO_COMMAND,
-        RANDOM_SO_COMMAND,
-        ENABLE_TASK_COMMAND,
-        DISABLE_TASK_COMMAND,
-        LURK_COMMAND,
-        UNLURK_COMMAND,
-      ],
-      'kavi_bot': [
-        FROOTY_COMMAND,
-        ORE_COMMAND,
-        TIN_COMMAND,
-        READING_COMMAND,
-        SET_BOOK_COMMAND,
-        SET_AUDIOBOOK_COMMAND,
-        READING_GOAL_COMMAND,
-        BOT_FIGHT_COMMAND,
-        AGENT_COMMAND,
-        SO_COMMAND,
-        RANDOM_SO_COMMAND,
-        ENABLE_TASK_COMMAND,
-        DISABLE_TASK_COMMAND,
-        LURK_COMMAND,
-        UNLURK_COMMAND,
-      ],
-      'bumblebwiii': [
-        FROOTY_COMMAND,
-        ORE_COMMAND,
-        TIN_COMMAND,
-        READING_COMMAND,
-        READING_GOAL_COMMAND,
-        BOT_FIGHT_COMMAND,
-        AGENT_COMMAND,
-        RANDOM_SO_COMMAND,
-        ENABLE_TASK_COMMAND,
-        DISABLE_TASK_COMMAND,
-      ],
-      'merubelle': [
-        SO_COMMAND,
-        LURK_COMMAND,
-        UNLURK_COMMAND,
-      ],
+      'kavisherlock': kaviCommands,
+      'kavi_bot': kaviCommands,
+      'bumblebwiii': bwiCommands,
+      'merubelle': streamerCommands,
+      'cheebuchan': streamerCommands,
     }
 
     this.twitchClient.on('clearchat', (channel) => {
@@ -159,7 +152,11 @@ export class TwitchChatBot {
           console.info({ channel, username, message })
 
           if (command.modsOnly && !isMod && username !== 'kavisherlock') {
-            this.twitchClient.say(channel, `Only moderators can use this command :]`);
+            if (username === 'AlwaysKorean') {
+              this.twitchClient.say(channel, 'Nice try Roan :p');
+            } else {
+              this.twitchClient.say(channel, `Only moderators can use this command :]`);
+            }
             return;
           }
           if (command.broadcasterOnly && !tags.badges?.broadcaster) {

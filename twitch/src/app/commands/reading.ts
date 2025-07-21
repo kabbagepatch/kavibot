@@ -2,8 +2,9 @@ import { Client, ChatUserstate } from 'tmi.js';
 
 import { Command } from '../models/command';
 
-let book = '';
-let audiobook = '';
+let book = 'The Thursday Murder Club by Richard Osman';
+let audiobook = 'Babel by R. F. Kuang';
+let read = 18;
 
 export const READING_COMMAND = new Command(
   '!reading',
@@ -22,7 +23,7 @@ export const READING_COMMAND = new Command(
       twitchClient.say(channel, output);
     }
   }
-)
+);
 
 export const SET_BOOK_COMMAND = new Command(
   '!setbook',
@@ -60,8 +61,24 @@ export const READING_GOAL_COMMAND = new Command(
   '!readinggoal',
   (twitchClient: Client, channel: string, tags : ChatUserstate) => {
     if (tags.username === 'kavisherlock') {
-      const output = 'I\'ve read 17 books this year so far 📚 My goal is 52!';
+      const output = `I've read ${read} books this year so far 📚 My goal is 52!`;
       twitchClient.say(channel, output);
     }
   }
-)
+);
+
+export const SET_BOOKS_READ_COMMAND = new Command(
+  '!setbooksread',
+  (twitchClient: Client, channel: string, tags : ChatUserstate, message: string) => { 
+    if (tags.username === 'kavisherlock') {
+      const booksRead = parseInt(message.split(' ')[1], 10);
+      if (booksRead && !isNaN(booksRead)) {
+        read = booksRead;
+        twitchClient.say(channel, `Books read set to: ${booksRead}`);
+      } else {
+        twitchClient.say(channel, 'Please provide a valid number of books read.');
+      }
+    }
+  },
+  true,
+);
