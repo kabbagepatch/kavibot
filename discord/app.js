@@ -160,8 +160,12 @@ app.post('/interactions', async function(req, res) {
       fullDateStrings.push('Sunday: \\*off\\*');
 
       let content = dateStringOutputs.join('\n');
-      if (req.body.member.user.id === BWI_USER_ID && dateStringOutputs.length > 1) {
-        content = fullDateStrings.join('\n');
+      if (req.body.member.user.id === BWI_USER_ID || req.body.member.user.id === KAV_USER_ID) {
+        if (dateStringOutputs.length > 1) {
+          content = fullDateStrings.join('\n');
+        } else {
+          content = content.split(' \\')[1];
+        }
       } else {
         content += "\n\\*times automatically converted to your time zone\\*\n";
       }

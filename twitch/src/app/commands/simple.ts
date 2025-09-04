@@ -10,9 +10,9 @@ export const COMMANDS_COMMAND = new Command(
 export const TEST_COMMAND = new Command(
   '!test',
   (twitchClient: Client, channel: string) => {
-    let output = `omg heyyyy`;
+    let output = 'omg heyyyy';
     if (channel === '#bumblebwiii') {
-      output = `bumble194Omg heyyyy`;
+      output = 'bumble194Omghey';
     }
     twitchClient.say(channel, output)
   }
@@ -23,7 +23,7 @@ export const WELCOME_COMMAND = new Command(
   (twitchClient: Client, channel: string) => {
     let output = `so many cuties in chat. welcome to ${channel.slice(1)} stream`;
     if (channel === '#bumblebwiii') {
-      output = `bumble194Omg ${output} bumble194Uwu`;
+      output = `bumble194Omghey ${output} bumble194Uwu`;
     }
     twitchClient.say(channel, output);
   }

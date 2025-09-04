@@ -12,6 +12,8 @@ import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND,
 import { READING_COMMAND, READING_GOAL_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND, SET_BOOKS_READ_COMMAND } from './commands/reading';
 import { Command } from './models/command';
 
+let hasJellyMessaged = false;
+
 export class TwitchChatBot {
   public twitchClient!: Client;
   private tokenDetails!: TwitchTokenDetails | { 'access_token': string };
@@ -115,8 +117,13 @@ export class TwitchChatBot {
       DISABLE_TASK_COMMAND,
     ];
 
-    const streamerCommands = [
+    const merubelleCommands = [
       SO_COMMAND,
+      LURK_COMMAND,
+      UNLURK_COMMAND,
+    ];
+
+    const cheebuchanCommands = [
       LURK_COMMAND,
       UNLURK_COMMAND,
     ];
@@ -125,17 +132,24 @@ export class TwitchChatBot {
       'kavisherlock': kaviCommands,
       'kavi_bot': kaviCommands,
       'bumblebwiii': bwiCommands,
-      'merubelle': streamerCommands,
-      'cheebuchan': streamerCommands,
+      'merubelle': merubelleCommands,
+      'cheebuchan': cheebuchanCommands,
     }
 
     this.twitchClient.on('clearchat', (channel) => {
       clearAgentsDone(channel);
       clearActiveUsers(channel);
+      hasJellyMessaged = false;
     });
 
     this.twitchClient.on('message', (channel, tags, message, self) => {
       if (self) return;
+
+      const username = tags.username ?? 'blank';
+      if (channel === '#bumblebwiii' && !hasJellyMessaged && username.toLowerCase() === 'jellynugget') {
+        this.twitchClient.say(channel, 'Things just got a bit fruity around here 🌈');
+        hasJellyMessaged = true;
+      }
 
       let commands : Command[] = channelCommands[channel.substring(1)] || [];
       commands = [...commonCommands, ...commands];
