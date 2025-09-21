@@ -1,6 +1,7 @@
-import { Client } from 'tmi.js';
+import { ChatUserstate, Client } from 'tmi.js';
 
 import { Command } from '../models/command';
+import axios from 'axios';
 
 export const COMMANDS_COMMAND = new Command(
   '!commands',
@@ -91,3 +92,49 @@ export const BOT_FIGHT_COMMAND = new Command(
     twitchClient.say(channel, '@StreamElements you\'re spare parts @bumblebottt more like bumble buttt');
   }
 );
+
+export const ADD_TIME_COMMAND = new Command(
+  '!addtime',
+  async (twitchClient: Client, channel: string, tags : ChatUserstate, message: string) => {
+    const timeToAdd = parseInt(message.split(' ')[1], 10);
+    let userAddingTime = message.split(' ')[2];
+
+    addTime(twitchClient, channel, timeToAdd, userAddingTime);
+  },
+  true,
+);
+
+export const ADD_TIP_COMMAND = new Command(
+  '!addtip',
+  async (twitchClient: Client, channel: string, tags : ChatUserstate, message: string) => {
+    const timeToAdd = parseInt(message.split(' ')[1], 10) * 120;
+    let userAddingTime = message.split(' ')[2];
+
+    addTime(twitchClient, channel, timeToAdd, userAddingTime);
+  },
+  true,
+);
+
+const addTime = async (twitchClient: Client, channel: string, seconds: number, name?: string) => {
+  let url = `https://api.tangia.co/quick_action/update-subathon?k=5daa17af-3a8d-48db-89e6-038ac421eb27&seconds=${seconds}`;
+  if (name) {
+    if (name.startsWith('@')) {
+      name = name.slice(1);
+    }
+    url += `&name=${name}`;
+  }
+  try {
+    console.log(url);
+    await axios.get(url);
+  } catch (error) {
+    console.error('Error adding time to subathon:', error);
+    twitchClient.say(channel, 'There was an error adding time to the subathon. Please try again later.');
+    return;
+  }
+
+  let responseMessage = `${seconds} seconds have been added to the subathon`;
+  if (name) {
+    responseMessage += ` thanks to ${name}`;
+  }
+  twitchClient.say(channel, responseMessage);
+};
