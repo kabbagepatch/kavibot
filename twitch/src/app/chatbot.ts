@@ -5,7 +5,7 @@ import { TwitchTokenDetails } from './models/twitchTokenDetails.models';
 import { ChatBotConfig } from './config/model';
 import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidator';
 
-import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND, LURK_COMMAND, UNLURK_COMMAND, ADD_TIME_COMMAND, ADD_TIP_COMMAND } from './commands/simple';
+import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND, LURK_COMMAND, UNLURK_COMMAND, ADD_TIME_COMMAND, ADD_TIP_COMMAND, SAY_COMMAND } from './commands/simple';
 import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
 import { RANDOM_SO_COMMAND, SO_COMMAND, NEXT_SO_COMMAND } from './commands/shoutout';
 import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND, TASK_HELP_COMMAND, clearActiveUsers } from './commands/tasks';
@@ -102,6 +102,9 @@ export class TwitchChatBot {
       DISABLE_TASK_COMMAND,
       LURK_COMMAND,
       UNLURK_COMMAND,
+      SAY_COMMAND,
+      ADD_TIME_COMMAND,
+      ADD_TIP_COMMAND,
     ];
 
     const bwiCommands = [
@@ -113,6 +116,8 @@ export class TwitchChatBot {
       BOT_FIGHT_COMMAND,
       AGENT_COMMAND,
       RANDOM_SO_COMMAND,
+      LURK_COMMAND,
+      UNLURK_COMMAND,
       ENABLE_TASK_COMMAND,
       DISABLE_TASK_COMMAND,
       ADD_TIME_COMMAND,

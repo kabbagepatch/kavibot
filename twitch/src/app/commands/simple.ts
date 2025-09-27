@@ -96,7 +96,19 @@ export const BOT_FIGHT_COMMAND = new Command(
 export const ADD_TIME_COMMAND = new Command(
   '!addtime',
   async (twitchClient: Client, channel: string, tags : ChatUserstate, message: string) => {
-    const timeToAdd = parseInt(message.split(' ')[1], 10);
+    let timeString = message.split(' ')[1];
+    let unit = 's';
+    const lastChar = timeString[timeString.length - 1];
+    if (lastChar === 'm' || lastChar === 'h' || lastChar === 's') {
+      unit = lastChar;
+      timeString = timeString.slice(0, -1);
+    }
+    let timeToAdd = parseInt(timeString, 10);
+    if (unit === 'm') {
+      timeToAdd = timeToAdd * 60;
+    } else if (unit === 'h') {
+      timeToAdd = timeToAdd * 3600;
+    }
     let userAddingTime = message.split(' ')[2];
 
     addTime(twitchClient, channel, timeToAdd, userAddingTime);
@@ -138,3 +150,17 @@ const addTime = async (twitchClient: Client, channel: string, seconds: number, n
   }
   twitchClient.say(channel, responseMessage);
 };
+
+export const SAY_COMMAND = new Command(
+  '!say',
+  (twitchClient: Client, channel: string, tags : ChatUserstate, message: string) => {
+    let channelToShoutoutIn = message.split(' ')[1];
+    if (channelToShoutoutIn[0] === '@') {
+      channelToShoutoutIn = channelToShoutoutIn.slice(1);
+    }
+    let messageToSay = message.split(' ').slice(2).join(' ');
+    twitchClient.say(`#${channelToShoutoutIn}`, messageToSay);
+  },
+  true,
+  true,
+);

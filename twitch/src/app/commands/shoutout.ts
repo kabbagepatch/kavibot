@@ -3,7 +3,9 @@ import { ChatUserstate, Client } from 'tmi.js';
 import { Command } from '../models/command';
 
 import streamers from '../streamers.json';
-const recentSOs : { [key : string] : string[] } = {};  
+const recentSOs : { [key : string] : string[] } = {
+  '#bumblebwiii': ['kofu12', 'ImAllBeans', 'OneNKen', 'Shadactyl98', 'mxmtoon']
+};
 const nextSO: { [key : string] : string } = {};
 
 const handleRandomSoCommand = (twitchClient: Client, channel: string) => {
