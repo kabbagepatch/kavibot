@@ -11,7 +11,7 @@ const isWithinLast4Hours = (timestamp : number) => {
   return now - timestamp <= twelveHoursInMs;
 }
 
-const handleAgentCommand = (twitchClient: Client, channel: string, tags: any, message: string) => {
+const handleAgentCommand = (twitchClient: Client, channel: string, tags: any) => {
   const username = tags.username;
   const agentKey = `${username}${channel}`
   if (agentKey in agentsDone && isWithinLast4Hours(agentsDone[agentKey].time)) {
@@ -26,16 +26,31 @@ const handleAgentCommand = (twitchClient: Client, channel: string, tags: any, me
   const randomLine = lines[Math.floor(Math.random() * lines.length)];
   agentsDone[agentKey] = { agent: randomAgent, time: Date.now() };
   setTimeout(() => {
-    twitchClient.say(channel, `/me thinking`);
-  }, 2000);
-  setTimeout(() => {
     twitchClient.say(channel, `@${username} You are ${randomAgent}. ${randomLine}`);
-  }, 6000);
+  }, 4000);
 };
 
 export const AGENT_COMMAND = new Command(
   '!agent',
   handleAgentCommand,
+);
+
+export const REROLL_AGENT_COMMAND = new Command(
+  '!rerollagent',
+  (twitchClient: Client, channel: string, tags: any, message: string) => {
+    let username = message.split(' ')[1] || tags.username;
+    if (username[0] === '@') {
+      username = username.slice(1);
+    }
+    const agentKey = `${username}${channel}`
+    if (agentKey in agentsDone) {
+      delete agentsDone[agentKey];
+      handleAgentCommand(twitchClient, channel, tags);
+    } else {
+      twitchClient.say(channel, `@${username} You haven't used !agent yet today! Use that first.`);
+    }
+  },
+  true,
 );
 
 export const clearAgentsDone = (channel : string) => {

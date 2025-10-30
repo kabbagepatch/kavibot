@@ -6,7 +6,7 @@ import { ChatBotConfig } from './config/model';
 import { TwitchTokenResponseValidator } from './utils/TwitchTokenResponseValidator';
 
 import { COMMANDS_COMMAND, BOT_FIGHT_COMMAND, FROOTY_COMMAND, HELLO_COMMAND, ORE_COMMAND, SLAY_COMMAND, TEST_COMMAND, TIN_COMMAND, WELCOME_COMMAND, LURK_COMMAND, UNLURK_COMMAND, ADD_TIME_COMMAND, ADD_TIP_COMMAND, SAY_COMMAND } from './commands/simple';
-import { AGENT_COMMAND, clearAgentsDone } from './commands/agent';
+import { AGENT_COMMAND, clearAgentsDone, REROLL_AGENT_COMMAND } from './commands/agent';
 import { RANDOM_SO_COMMAND, SO_COMMAND, NEXT_SO_COMMAND } from './commands/shoutout';
 import { NOW_COMMAND, TASK_COMMAND, COMPLETE_TASK_COMMAND, DISABLE_TASK_COMMAND, ENABLE_TASK_COMMAND, GET_TASKS_COMMAND, REMOVE_TASK_COMMAND, taskCommandsEnabled, SOON_COMMAND, LATER_COMMAND, CLEAR_COMMAND, TASK_HELP_COMMAND, clearActiveUsers } from './commands/tasks';
 import { READING_COMMAND, READING_GOAL_COMMAND, SET_AUDIOBOOK_COMMAND, SET_BOOK_COMMAND, SET_BOOKS_READ_COMMAND } from './commands/reading';
@@ -95,6 +95,7 @@ export class TwitchChatBot {
       READING_GOAL_COMMAND,
       BOT_FIGHT_COMMAND,
       AGENT_COMMAND,
+      REROLL_AGENT_COMMAND,
       SO_COMMAND,
       RANDOM_SO_COMMAND,
       NEXT_SO_COMMAND,
@@ -115,6 +116,7 @@ export class TwitchChatBot {
       READING_GOAL_COMMAND,
       BOT_FIGHT_COMMAND,
       AGENT_COMMAND,
+      REROLL_AGENT_COMMAND,
       RANDOM_SO_COMMAND,
       LURK_COMMAND,
       UNLURK_COMMAND,
@@ -178,7 +180,7 @@ export class TwitchChatBot {
           console.info({ channel, username, message })
 
           if (command.modsOnly && !isMod && username !== 'kavisherlock') {
-            if (username === 'AlwaysKorean') {
+            if (username.toLowerCase() === 'alwayskorean') {
               this.twitchClient.say(channel, 'Nice try Roan :p');
             } else {
               this.twitchClient.say(channel, `Only moderators can use this command :]`);
