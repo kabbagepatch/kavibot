@@ -78,8 +78,8 @@ export async function getCompliment() {
   return compliment;
 }
 
-export const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-export const DAYS_INITIALS = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
+export const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+export const DAYS_INITIALS = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'];
 
 export function getDateFromInput(input, timezone, userId) {
   let dateString = input.trim();
@@ -109,7 +109,7 @@ export function getDateFromInput(input, timezone, userId) {
     let dateIndex = -1;
     DAYS_INITIALS.forEach((day, i) => {
       if (dateString.toLowerCase().startsWith(day.toLowerCase())) {
-        dateIndex = i;
+        dateIndex = i + 1;
       }
     });
     const resultDate = addDays(new Date(), dateIndex - new Date().getDay()).toLocaleDateString();
@@ -120,5 +120,16 @@ export function getDateFromInput(input, timezone, userId) {
     game = ': ' + game;
   }
 
-  return !isNaN(date.getTime()) ? `${FULL_DAYS[date.getHours() > 5 ? date.getDay() : (date.getDay() - 1 < 0 ? 6 : date.getDay() - 1)]}: \\<t:${date.getTime() / 1000}:t>${game}` : 'Invalid Date passed in';
+  if (isNaN(date.getTime())) {
+    return 'Output: Invalid Date(s) passed in';
+  }
+
+  const dayPart = FULL_DAYS[date.getHours() > 6 ? (date.getDay() === 0 ? 6 : date.getDay() - 1) : (date.getDay() === 0 ? 5 : (date.getDay() === 1 ? 6 : date.getDay() - 2))];
+  // const dayPart = FULL_DAYS[date.getHours() > 5 ? (date.getDay() - 1 < 0 ? 6 : date.getDay() - 1) : (date.getDay() - 2 < 0 ? 5 : date.getDay() - 2)];
+
+  if (userId == BWI_USER_ID || userId == KAV_USER_ID) {
+    return `${dayPart}: \\<t:${date.getTime() / 1000}:F>${game}`;
+  }
+
+  return `${dayPart}: \\<t:${date.getTime() / 1000}:t>${game}`;
 }

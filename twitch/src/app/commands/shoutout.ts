@@ -4,7 +4,7 @@ import { Command } from '../models/command';
 
 import streamers from '../streamers.json';
 const recentSOs : { [key : string] : string[] } = {
-  '#bumblebwiii': ['kofu12', 'ImAllBeans', 'OneNKen', 'Shania', 'mxmtoon']
+  '#bumblebwiii': ['kofu12', 'ImAllBeans', 'OneNKen', 'Shania', 'mxmtoon', 'PixiesDirt']
 };
 const nextSO: { [key : string] : string } = {};
 

@@ -12,7 +12,7 @@ import { Client, GatewayIntentBits } from 'discord.js';
 
 import { VerifyDiscordRequest, DiscordRequest, getRandomEmoji, getDateFromInput, FULL_DAYS, getCompliment } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { CHALLENGE_COMMAND, HELLO_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND, SHOW_REMINDERS_COMMAND } from './commands.js';
+import { CHALLENGE_COMMAND, HELLO_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND, SHOW_REMINDERS_COMMAND, STUPID_COUNTER, SHOW_STUPID_COUNTS, RESET_STUPID_COUNTERS } from './commands.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +28,8 @@ const BWI_USER_ID = '467323668507131904';
 const KAV_USER_ID = '694510056217247795';
 
 const activeReminders = {};
+
+const stupidCounts = {};
 
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
@@ -149,20 +151,18 @@ app.post('/interactions', async function(req, res) {
       const dateStringOutputs = dateStrings.split(',').map(dateString => getDateFromInput(dateString, timezone, req.body.member.user.id));
       let fullDateStrings = [];
       FULL_DAYS.forEach((day) => {
-        if (day === 'Sunday') return;
         const i = dateStringOutputs.findIndex(d => d.startsWith(day));
         if (i !== -1) {
-          fullDateStrings.push(dateStringOutputs[i]);
+          fullDateStrings.push(dateStringOutputs[i].split(' \\')[1] + '\n->');
         } else {
-          fullDateStrings.push(`${day}: \\*off\\*`);
+          fullDateStrings.push(`${day}\n*off*`);
         }
       });
-      fullDateStrings.push('Sunday: \\*off\\*');
 
       let content = dateStringOutputs.join('\n');
       if (req.body.member.user.id === BWI_USER_ID || req.body.member.user.id === KAV_USER_ID) {
         if (dateStringOutputs.length > 1) {
-          content = fullDateStrings.join('\n');
+          content = fullDateStrings.join('\n\n');
         } else {
           content = content.split(' \\')[1];
         }
@@ -184,6 +184,40 @@ app.post('/interactions', async function(req, res) {
       content += "\n\\*This schedule will include all stream times, podcast releases, and Discord events going on for the week and will be updated on Sundays. Keep in mind all times are subject to change (assume +/- 30 ish mins due to my fashionably late nature). All times appear in the timezone you use on your device.\\*\n\n:BeeBounce:\n\n";
       content += dateStrings.split(',').map(dateString => getDateFromInput(dateString, timezone, req.body.member.user.id)).join('\n');
 
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content },
+      })
+    }
+
+    if (name === STUPID_COUNTER.name) {
+      const userId = options.user ?? req.body.member.user.id;
+      if (!stupidCounts[userId]) {
+        stupidCounts[userId] = 0;
+      }
+      stupidCounts[userId] += 1;
+      const content = `<@${userId}> has said stupid ${stupidCounts[userId]} time(s)`;
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content },
+      })
+    }
+
+    if (name === SHOW_STUPID_COUNTS.name) {
+      console.log({stupidCounts});
+      let content = 'Stupid counts:\n';
+      Object.keys(stupidCounts).forEach(userId => {
+        content += `<@${userId}>: ${stupidCounts[userId]}\n`;
+      });
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content },
+      })
+    }
+
+    if (name === RESET_STUPID_COUNTERS.name) {
+      Object.keys(stupidCounts).forEach(key => { stupidCounts[key] = 0; });
+      const content = `All stupid counters have been reset`;
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: { content },
@@ -215,7 +249,7 @@ app.post('/interactions', async function(req, res) {
 
     if (name === SHOW_REMINDERS_COMMAND.name) {
       const userId = options.user ?? req.body.member.user.id;
-      console.log(activeReminders);
+      console.log({activeReminders});
       const allReminders = Object.keys(activeReminders);
       const userReminders = allReminders.filter(r => r.substring(0, r.indexOf('-')) == userId);
       const userReminderNames = userReminders.map(r => `${r.substring(r.indexOf('-') + 1)} (${activeReminders[r].nReminders - activeReminders[r].sendCount} left)`);
@@ -393,10 +427,13 @@ app.listen(PORT, () => {
     REMINDER_COMMAND,
     SHOW_REMINDERS_COMMAND,
     STOP_REMINDER_COMMAND,
+    STUPID_COUNTER,
+    SHOW_STUPID_COUNTS,
+    RESET_STUPID_COUNTERS,
   ];
 
   const updatedCommands = [
-    TIME_COMMAND
+    TIME_COMMAND,
   ];
 
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);

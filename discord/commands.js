@@ -224,3 +224,28 @@ export const STOP_REMINDER_COMMAND = {
     },
   ],
 }
+
+export const STUPID_COUNTER = {
+  name: 'stupidcount',
+  description: 'Someone said stupid. Count it!',
+  type: CHAT_INPUT,
+  options: [
+    {
+      type: USER,
+      name: 'user',
+      description: 'User who said stupid',
+    },
+  ],
+}
+
+export const SHOW_STUPID_COUNTS = {
+  name: 'showstupidcount',
+  description: 'Show stupid counts',
+  type: CHAT_INPUT,
+}
+
+export const RESET_STUPID_COUNTERS = {
+  name: 'resetstupidcounts',
+  description: 'Reset all stupid counts',
+  type: CHAT_INPUT,
+}
