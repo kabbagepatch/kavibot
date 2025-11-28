@@ -12,7 +12,23 @@ import { Client, GatewayIntentBits } from 'discord.js';
 
 import { VerifyDiscordRequest, DiscordRequest, getRandomEmoji, getDateFromInput, FULL_DAYS, getCompliment } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { CHALLENGE_COMMAND, HELLO_COMMAND, FLOW_COMMAND, TIME_COMMAND, WEEKLY_COMMAND, GAME_COMMAND, REMINDER_COMMAND, SyncGuildCommands, STOP_REMINDER_COMMAND, SHOW_REMINDERS_COMMAND, STUPID_COUNTER, SHOW_STUPID_COUNTS, RESET_STUPID_COUNTERS } from './commands.js';
+import {
+  CHALLENGE_COMMAND,
+  HELLO_COMMAND,
+  FLOW_COMMAND,
+  TIME_COMMAND,
+  WEEKLY_COMMAND,
+  GAME_COMMAND,
+  REMINDER_COMMAND,
+  SyncGuildCommands,
+  STOP_REMINDER_COMMAND,
+  SHOW_REMINDERS_COMMAND,
+  STUPID_COUNTER,
+  SHOW_STUPID_COUNTS,
+  RESET_STUPID_COUNTERS,
+  ADD_TASK_COMMAND,
+} from './commands.js';
+import axios from 'axios';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -153,7 +169,7 @@ app.post('/interactions', async function(req, res) {
       FULL_DAYS.forEach((day) => {
         const i = dateStringOutputs.findIndex(d => d.startsWith(day));
         if (i !== -1) {
-          fullDateStrings.push(dateStringOutputs[i].split(' \\')[1] + '\n->');
+          fullDateStrings.push(dateStringOutputs[i].split(' \\')[1] + '\n');
         } else {
           fullDateStrings.push(`${day}\n*off*`);
         }
@@ -319,6 +335,33 @@ app.post('/interactions', async function(req, res) {
       });
     }
 
+    const addTaskCommand = await ADD_TASK_COMMAND();
+    if (name === addTaskCommand.name) {
+      const task = options.task;
+      const project = options.project.split(' ')[0];
+      const category = options.project.split(' ')[1];
+
+      let addedTask;
+      try {
+        addedTask = await axios.post(`${process.env.PRIORITY_TRACKER_API_BASE_URL}/tasks?user=kavish`, {
+          name: task,
+          project,
+          category,
+          status: 'queued'
+        });
+      } catch {
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: `Failed to add task ${task}` },
+        });
+      }
+
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: `Task ${task} added` },
+      });
+    }
+
     if (name === CHALLENGE_COMMAND.name && id) {
       const userId = req.body.member.user.id;
       const name = data.options[0].value;
@@ -415,7 +458,7 @@ app.post('/interactions', async function(req, res) {
 
 client.login(process.env.DISCORD_TOKEN);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('Listening on port', PORT);
 
   const existingCommands = [
@@ -432,12 +475,12 @@ app.listen(PORT, () => {
     RESET_STUPID_COUNTERS,
   ];
 
-  const updatedCommands = [
-    TIME_COMMAND,
-  ];
+  const updatedCommands = [];
+
+  const addTaskCommand = await ADD_TASK_COMMAND();
 
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);
-  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands, updatedCommands);
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands.concat([addTaskCommand]), updatedCommands.concat([addTaskCommand]));
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_MERU, [HELLO_COMMAND, TIME_COMMAND], []);
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_NELLY, [HELLO_COMMAND, TIME_COMMAND], []);
 });

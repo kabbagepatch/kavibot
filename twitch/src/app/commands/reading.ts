@@ -2,9 +2,9 @@ import { Client, ChatUserstate } from 'tmi.js';
 
 import { Command } from '../models/command';
 
-let book = 'Butter by Asako Yuzuki';
-let audiobook = 'The Return of the King by J.R.R. Tolkien';
-let read = 35;
+let book = 'Dungeon Crawler Carl by Matt Dinniman';
+let audiobook = 'Gideon the Ninth by Tamsyn Muir';
+let read = 39;
 
 export const READING_COMMAND = new Command(
   '!reading',

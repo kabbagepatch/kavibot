@@ -1,6 +1,7 @@
 import util from 'util';
 import { getAgentChoices } from './game.js';
 import { capitalize, DiscordRequest } from './utils.js';
+import axios from 'axios';
 
 const CHAT_INPUT = 1;
 const STRING = 3;
@@ -57,8 +58,7 @@ export async function RemoveGuildCommand(appId, guildId, commandId) {
 }
 
 
-function createCommandChoices() {
-  const choices = getAgentChoices();
+function createCommandChoices(choices) {
   return choices.map(choice => ({
     name: capitalize(choice),
     value: choice.toLowerCase(),
@@ -138,7 +138,7 @@ export const CHALLENGE_COMMAND = {
       name: 'agent',
       description: 'Choose your Agent',
       required: true,
-      choices: createCommandChoices(),
+      choices: createCommandChoices(getAgentChoices()),
     },
     {
       type: USER,
@@ -248,4 +248,38 @@ export const RESET_STUPID_COUNTERS = {
   name: 'resetstupidcounts',
   description: 'Reset all stupid counts',
   type: CHAT_INPUT,
+}
+
+export const ADD_TASK_COMMAND = async () => {
+  let projects = [];
+  try {
+    const res = await axios.get(`${process.env.PRIORITY_TRACKER_API_BASE_URL}/priorities?user=kavish`);
+    projects = res.data.filter(p => !p.complete);
+  } catch(err) {
+    console.error('Error fetching project IDs for addtask command:', err);
+  }
+
+  return {
+    name: 'addtask',
+    description: 'Add a task to the task list',
+    type: CHAT_INPUT,
+    options: [
+      {
+        type: STRING,
+        name: 'task',
+        description: 'The task to add',
+        required: true,
+      },
+      {
+        type: STRING,
+        name: 'project',
+        description: 'The project to add to',
+        required: true,
+        choices: projects.map(p => ({
+          name: p.name,
+          value: p.id + ' ' + p.category,
+        })),
+      }
+    ],
+  }
 }

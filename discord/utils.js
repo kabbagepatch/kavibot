@@ -95,7 +95,7 @@ export function getDateFromInput(input, timezone, userId) {
   }
   let timeEndIndex = dateString.indexOf(' am') === -1 ? dateString.indexOf(' pm') : dateString.indexOf(' am')
   timeEndIndex += 3;
-  const game = timeEndIndex >= dateString.length ? '' : dateString.substring(timeEndIndex).trim();
+  let game = timeEndIndex >= dateString.length ? '' : dateString.substring(timeEndIndex).trim();
   dateString = dateString.substring(0, timeEndIndex).trim();
   const curDay = (new Date()).getDate();
   const curMonth = (new Date()).getMonth() + 1;
