@@ -43,6 +43,19 @@ export function getRandomEmoji() {
   return Math.floor(Math.random() * 5) === 1 ? '🫦' : emojiList[Math.floor(Math.random() * emojiList.length)];
 }
 
+export function getRandomMotivation() {
+  const motivationList = [
+    'You\'re killing it!',
+    'Look at you go!',
+    'Unstoppable 💪',
+    'Proud of you!',
+    'Crushing it 🔥',
+    'Good job. You seem fruity :)',
+    'Keep that momentum going!',
+  ];
+  return motivationList[Math.floor(Math.random() * motivationList.length)];
+}
+
 export function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

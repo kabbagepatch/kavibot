@@ -1,8 +1,8 @@
-FROM debian:bullseye as builder
+FROM debian:bookworm as builder
 
 ARG NODE_VERSION=22.3.0
 
-RUN apt-get update; apt install -y curl python-is-python3 pkg-config build-essential
+RUN apt-get update && apt install -y curl python-is-python3 pkg-config build-essential
 RUN curl https://get.volta.sh | bash
 ENV VOLTA_HOME /root/.volta
 ENV PATH /root/.volta/bin:$PATH
@@ -22,7 +22,7 @@ ENV NODE_ENV production
 COPY . .
 
 RUN npm install
-FROM debian:bullseye
+FROM debian:bookworm
 
 LABEL fly_launch_runtime="nodejs"
 

@@ -4,6 +4,7 @@ import { capitalize, DiscordRequest } from './utils.js';
 import axios from 'axios';
 
 const CHAT_INPUT = 1;
+const SUB_COMMAND = 1;
 const STRING = 3;
 const INTEGER = 4;
 const BOOLEAN = 5;
@@ -248,6 +249,63 @@ export const RESET_STUPID_COUNTERS = {
   name: 'resetstupidcounts',
   description: 'Reset all stupid counts',
   type: CHAT_INPUT,
+}
+
+export const TASK_COMMAND = {
+  name: 'task',
+  description: 'Manage your task list',
+  type: CHAT_INPUT,
+  options: [
+    {
+      type: SUB_COMMAND,
+      name: 'add',
+      description: 'Add task(s) to your list',
+      options: [
+        {
+          type: STRING,
+          name: 'task',
+          description: 'Task(s) to add. Separate multiple with ;',
+          required: true,
+        },
+      ],
+    },
+    {
+      type: SUB_COMMAND,
+      name: 'done',
+      description: 'Mark task(s) as done',
+      options: [
+        {
+          type: STRING,
+          name: 'index',
+          description: 'Task number(s) from /task list, e.g. 1 or 1,3',
+          required: true,
+        },
+      ],
+    },
+    {
+      type: SUB_COMMAND,
+      name: 'remove',
+      description: 'Remove task(s) without completing them',
+      options: [
+        {
+          type: STRING,
+          name: 'index',
+          description: 'Task number(s) from /task list, e.g. 1 or 1,3',
+          required: true,
+        },
+      ],
+    },
+    {
+      type: SUB_COMMAND,
+      name: 'list',
+      description: 'Show your tasks',
+    },
+    {
+      type: SUB_COMMAND,
+      name: 'clear',
+      description: 'Remove all your tasks',
+    },
+  ],
 }
 
 export const ADD_TASK_COMMAND = async () => {

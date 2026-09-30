@@ -82,10 +82,10 @@ export class TwitchChatBot {
       HELLO_COMMAND,
       WELCOME_COMMAND,
       SLAY_COMMAND,
+      FROOTY_COMMAND,
     ];
 
     const kaviCommands = [
-      FROOTY_COMMAND,
       ORE_COMMAND,
       TIN_COMMAND,
       READING_COMMAND,

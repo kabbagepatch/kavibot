@@ -10,7 +10,7 @@ import {
 } from 'discord-interactions';
 import { Client, GatewayIntentBits } from 'discord.js';
 
-import { VerifyDiscordRequest, DiscordRequest, getRandomEmoji, getDateFromInput, FULL_DAYS, getCompliment } from './utils.js';
+import { VerifyDiscordRequest, DiscordRequest, getRandomEmoji, getDateFromInput, FULL_DAYS, getCompliment, getRandomMotivation } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
 import {
   CHALLENGE_COMMAND,
@@ -27,6 +27,7 @@ import {
   SHOW_STUPID_COUNTS,
   RESET_STUPID_COUNTERS,
   ADD_TASK_COMMAND,
+  TASK_COMMAND,
 } from './commands.js';
 import axios from 'axios';
 
@@ -46,6 +47,9 @@ const KAV_USER_ID = '694510056217247795';
 const activeReminders = {};
 
 const stupidCounts = {};
+
+const userTasks = {};
+const guildDoneCounts = {};
 
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
@@ -335,6 +339,87 @@ app.post('/interactions', async function(req, res) {
       });
     }
 
+    if (name === TASK_COMMAND.name) {
+      const subcommand = data.options[0];
+      const subOptions = {};
+      if (subcommand.options) {
+        subcommand.options.forEach(option => subOptions[option.name] = option.value);
+      }
+      const userId = req.body.member.user.id;
+      userTasks[userId] ??= [];
+      const tasks = userTasks[userId];
+
+      if (subcommand.name === 'add') {
+        const newTasks = subOptions.task.split(';').map(t => t.trim()).filter(Boolean);
+        if (newTasks.length === 0) {
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content: 'No task given', flags: 64 },
+          });
+        }
+        newTasks.forEach(text => tasks.push({ text, done: false }));
+        const content = newTasks.length === 1
+          ? `Added: **${newTasks[0]}**`
+          : 'Added:\n' + newTasks.map(t => `**${t}**`).join('\n');
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content },
+        });
+      }
+
+      if (subcommand.name === 'list') {
+        const content = tasks.length > 0
+          ? tasks.map((t, i) => `${i + 1}. ${t.done ? `~~${t.text}~~` : t.text}`).join('\n')
+          : 'No tasks. Add one using /task add and get productive with us!';
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content },
+        });
+      }
+
+      if (subcommand.name === 'clear') {
+        userTasks[userId] = [];
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: 'Task list cleared. Starting fresh' },
+        });
+      }
+
+      // done and remove both take comma-separated indexes
+      const rawIndexes = subOptions.index.split(',').map(i => i.trim()).filter(Boolean);
+      const invalid = rawIndexes.filter(i => !Number.isInteger(Number(i)) || Number(i) < 1 || Number(i) > tasks.length);
+      if (rawIndexes.length === 0 || invalid.length > 0) {
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: `No task #${invalid.join(', #') || subOptions.index} found. You have ${tasks.length} task(s).`, flags: 64 },
+        });
+      }
+      const indexes = [...new Set(rawIndexes.map(Number))].sort((a, b) => a - b);
+
+      if (subcommand.name === 'done') {
+        const newlyDone = indexes.map(i => tasks[i - 1]).filter(t => !t.done);
+        if (newlyDone.length === 0) {
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content: 'Already done', flags: 64 },
+          });
+        }
+        newlyDone.forEach(t => t.done = true);
+        guildDoneCounts[guild_id] = (guildDoneCounts[guild_id] ?? 0) + newlyDone.length;
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: `✅ ${newlyDone.map(t => t.text).join(', ')}. *${getRandomMotivation()}*\n(${guildDoneCounts[guild_id]} tasks completed in this server)` },
+        });
+      }
+
+      const removed = indexes.map(i => tasks[i - 1].text);
+      [...indexes].reverse().forEach(i => tasks.splice(i - 1, 1));
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: `Removed: ${removed.join(', ')}` },
+      });
+    }
+
     const addTaskCommand = await ADD_TASK_COMMAND();
     if (name === addTaskCommand.name) {
       const task = options.task;
@@ -473,14 +558,15 @@ app.listen(PORT, async () => {
     STUPID_COUNTER,
     SHOW_STUPID_COUNTS,
     RESET_STUPID_COUNTERS,
+    TASK_COMMAND,
   ];
 
-  const updatedCommands = [];
+  const updatedCommands = [TASK_COMMAND];
 
   const addTaskCommand = await ADD_TASK_COMMAND();
 
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_BWI, existingCommands, updatedCommands);
-  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands.concat([addTaskCommand]), updatedCommands.concat([addTaskCommand]));
+  SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_KAV, existingCommands, updatedCommands);
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_MERU, [HELLO_COMMAND, TIME_COMMAND], []);
   SyncGuildCommands(process.env.APP_ID, process.env.GUILD_ID_NELLY, [HELLO_COMMAND, TIME_COMMAND], []);
 });
